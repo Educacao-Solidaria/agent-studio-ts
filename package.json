@@ -1,0 +1,18 @@
+{
+  "name": "@educacao-solidaria/agent-studio-ts",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Visual agent canvas, MCP client host & interactive playground",
+  "scripts": {
+    "test": "node --test tests/stateMachine.test.ts"
+  },
+  "keywords": [
+    "ai",
+    "mcp",
+    "agents",
+    "reactflow",
+    "openrouter"
+  ],
+  "author": "Educacao-Solidaria",
+  "license": "MIT"
+}
