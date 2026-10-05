@@ -52,6 +52,15 @@ describe("handlers do OpenRouter", () => {
     });
   });
 
+  it("trata corpo que não é JSON como pedido vazio", async () => {
+    const response = await fetch(`${OPENROUTER_URL}/chat/completions`, {
+      method: "POST",
+      body: "não é json",
+    });
+    expect(response.status).toBe(200);
+    expect((await response.json()).model).toBe(MOCK_MODEL);
+  });
+
   it("aceita override por teste com server.use", async () => {
     server.use(
       http.post(`${OPENROUTER_URL}/chat/completions`, () =>

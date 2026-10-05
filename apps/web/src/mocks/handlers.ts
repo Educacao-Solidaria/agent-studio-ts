@@ -70,7 +70,8 @@ export function createHandlers({ chunkDelayMs = 40 } = {}) {
     ),
 
     http.post(`${OPENROUTER_URL}/chat/completions`, async ({ request }) => {
-      const body = (await request.json()) as ChatRequest;
+      // Corpo inválido vira pedido vazio em vez de derrubar o handler com 500.
+      const body = ((await request.json().catch(() => null)) ?? {}) as ChatRequest;
       const model = body.model ?? MOCK_MODEL;
       const id = `gen-mock-${Date.now()}`;
 
