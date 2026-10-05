@@ -133,3 +133,44 @@
     font-family: var(--font-sans);
   }
 }
+
+/* Animações de entrada/saída dos overlays (Radix espera o animationend para desmontar). */
+@theme {
+  --animate-fade-in: fade-in 150ms ease-out;
+  --animate-fade-out: fade-out 100ms ease-in;
+  --animate-pop-in: pop-in 150ms ease-out;
+  --animate-pop-out: pop-out 100ms ease-in;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+  @keyframes pop-out {
+    to {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+}
+
+/* Sem animação para quem pediu menos movimento; o Radix desmonta na hora. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --animate-fade-in: none;
+    --animate-fade-out: none;
+    --animate-pop-in: none;
+    --animate-pop-out: none;
+  }
+}
