@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite --mode mock",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "biome check .",
@@ -39,6 +40,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^30.1.2",
+    "msw": "^2.15.0",
     "storybook": "^10.6.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
