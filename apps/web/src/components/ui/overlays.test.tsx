@@ -1,5 +1,6 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithProviders } from "../../test/render.tsx";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "./dialog.tsx";
 import {
   DropdownMenu,
@@ -7,11 +8,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./dropdown-menu.tsx";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip.tsx";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip.tsx";
 
 describe("Dialog", () => {
   it("abre com título acessível, prende o foco e devolve ao gatilho no Esc", async () => {
-    render(
+    const { user } = renderWithProviders(
       <Dialog>
         <DialogTrigger>Novo agente</DialogTrigger>
         <DialogContent>
@@ -22,35 +23,34 @@ describe("Dialog", () => {
       </Dialog>,
     );
     const trigger = screen.getByRole("button", { name: "Novo agente" });
-    trigger.focus(); // como num clique real, o gatilho recebe o foco antes de abrir
-    fireEvent.click(trigger);
+    await user.click(trigger);
 
     const dialog = screen.getByRole("dialog", { name: "Criar agente" });
     expect(dialog.contains(document.activeElement)).toBe(true);
 
-    fireEvent.keyDown(dialog, { key: "Escape" });
+    await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
     // o Radix devolve o foco num setTimeout após desmontar
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  it("fecha pelo botão rotulado Fechar", () => {
-    render(
+  it("fecha pelo botão rotulado Fechar", async () => {
+    const { user } = renderWithProviders(
       <Dialog defaultOpen>
         <DialogContent aria-describedby={undefined}>
           <DialogTitle>Confirmar</DialogTitle>
         </DialogContent>
       </Dialog>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
+    await user.click(screen.getByRole("button", { name: "Fechar" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
 
 describe("DropdownMenu", () => {
-  it("abre pelo teclado e dispara onSelect do item", () => {
+  it("abre pelo teclado e dispara onSelect do item", async () => {
     const onSelect = vi.fn();
-    render(
+    const { user } = renderWithProviders(
       <DropdownMenu>
         <DropdownMenuTrigger>Ações</DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -59,33 +59,33 @@ describe("DropdownMenu", () => {
         </DropdownMenuContent>
       </DropdownMenu>,
     );
-    fireEvent.keyDown(screen.getByRole("button", { name: "Ações" }), { key: "Enter" });
+    await user.tab();
+    await user.keyboard("{Enter}");
 
     expect(screen.getByRole("menu")).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "Excluir" }).getAttribute("aria-disabled")).toBe(
       "true",
     );
-    fireEvent.click(screen.getByRole("menuitem", { name: "Duplicar" }));
+    await user.click(screen.getByRole("menuitem", { name: "Duplicar" }));
     expect(onSelect).toHaveBeenCalledOnce();
     expect(screen.queryByRole("menu")).toBeNull();
   });
 });
 
 describe("Tooltip", () => {
-  it("aparece no foco do teclado e descreve o gatilho", () => {
-    render(
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>Executar</TooltipTrigger>
-          <TooltipContent>Roda o fluxo inteiro</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>,
+  it("aparece no foco do teclado e descreve o gatilho", async () => {
+    const { user } = renderWithProviders(
+      <Tooltip>
+        <TooltipTrigger>Executar</TooltipTrigger>
+        <TooltipContent>Roda o fluxo inteiro</TooltipContent>
+      </Tooltip>,
     );
-    const trigger = screen.getByRole("button", { name: "Executar" });
-    act(() => trigger.focus());
+    await user.tab();
 
-    const tooltip = screen.getByRole("tooltip");
+    const tooltip = await screen.findByRole("tooltip");
     expect(tooltip.textContent).toBe("Roda o fluxo inteiro");
-    expect(trigger.getAttribute("aria-describedby")).toBe(tooltip.id);
+    expect(screen.getByRole("button", { name: "Executar" }).getAttribute("aria-describedby")).toBe(
+      tooltip.id,
+    );
   });
 });
