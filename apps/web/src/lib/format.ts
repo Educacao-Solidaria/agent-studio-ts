@@ -26,8 +26,8 @@ export function formatNumber(
 }
 
 /**
- * Moeda com 2 casas; abaixo de um centavo usa 2 dígitos significativos para o custo
- * de uma chamada barata não aparecer como "US$ 0,00".
+ * Moeda com as casas da própria moeda (USD/BRL 2, JPY 0); abaixo de um centavo usa
+ * 2 dígitos significativos para o custo de uma chamada barata não aparecer como "US$ 0,00".
  */
 export function formatCurrency(value: number, currency = "USD", locale = DEFAULT_LOCALE): string {
   const tiny = value !== 0 && Math.abs(value) < 0.01;
@@ -35,7 +35,7 @@ export function formatCurrency(value: number, currency = "USD", locale = DEFAULT
     value,
     tiny
       ? { style: "currency", currency, maximumSignificantDigits: 2 }
-      : { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 },
+      : { style: "currency", currency },
     locale,
   );
 }

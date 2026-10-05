@@ -27,6 +27,7 @@ describe("formatCurrency", () => {
   it("aceita moeda e locale", () => {
     expect(plain(formatCurrency(1234.5, "BRL"))).toBe("R$ 1.234,50");
     expect(formatCurrency(1234.5, "USD", "en-US")).toBe("$1,234.50");
+    expect(plain(formatCurrency(1234.5, "JPY"))).toBe("JP¥ 1.235");
   });
 
   it("mantém visível o custo abaixo de um centavo", () => {
