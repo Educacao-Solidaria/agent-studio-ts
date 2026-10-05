@@ -1,4 +1,9 @@
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
+import { installBrowserMocks } from "./browser-mocks.ts";
 
-afterEach(cleanup);
+beforeEach(installBrowserMocks);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
