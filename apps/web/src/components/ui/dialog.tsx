@@ -1,6 +1,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn.ts";
+import { Icon } from "../icons.tsx";
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
@@ -30,9 +31,9 @@ export function DialogContent({
         {children}
         <DialogPrimitive.Close
           aria-label="Fechar"
-          className="absolute top-3 right-3 rounded-sm px-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute top-3 right-3 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          ×
+          <Icon name="close" />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
