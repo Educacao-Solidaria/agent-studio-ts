@@ -1,7 +1,9 @@
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { setMediaQuery, triggerIntersection, triggerResize } from "./browser-mocks.ts";
+import { renderWithProviders } from "./render.tsx";
 
-// renderWithProviders é exercitado em components/ui/overlays.test.tsx (o Tooltip exige o provider).
+// O TooltipProvider do renderWithProviders é exercitado em components/ui/overlays.test.tsx.
 describe("mocks de browser", () => {
   it("matchMedia não casa por padrão e avisa os ouvintes quando muda", () => {
     const dark = window.matchMedia("(prefers-color-scheme: dark)");
@@ -47,6 +49,17 @@ describe("mocks de browser", () => {
   it("clipboard guarda o texto em memória", async () => {
     await navigator.clipboard.writeText("agent-42");
     await expect(navigator.clipboard.readText()).resolves.toBe("agent-42");
+  });
+
+  it("o clipboard mockado sobrevive ao user-event do renderWithProviders", async () => {
+    const { user } = renderWithProviders(
+      <button type="button" onClick={() => navigator.clipboard.writeText("agent-7")}>
+        Copiar id
+      </button>,
+    );
+    await user.click(screen.getByRole("button", { name: "Copiar id" }));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("agent-7");
+    await expect(navigator.clipboard.readText()).resolves.toBe("agent-7");
   });
 
   it("estado recomeça a cada teste", async () => {
