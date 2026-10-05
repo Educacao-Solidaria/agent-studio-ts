@@ -31,7 +31,7 @@ export function DialogContent({
         {children}
         <DialogPrimitive.Close
           aria-label="Fechar"
-          className="absolute top-3 right-3 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute top-3 right-3 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Icon name="close" />
         </DialogPrimitive.Close>
