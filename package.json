@@ -14,5 +14,8 @@
     "openrouter"
   ],
   "author": "Educacao-Solidaria",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
 }
