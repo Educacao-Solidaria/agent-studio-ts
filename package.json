@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Visual agent canvas, MCP client host & interactive playground",
   "scripts": {
-    "test": "node --test tests/stateMachine.test.ts"
+    "test": "node --test tests/*.test.ts"
   },
   "keywords": [
     "ai",
