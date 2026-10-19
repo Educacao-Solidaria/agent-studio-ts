@@ -1,5 +1,5 @@
-import type { Node } from "@xyflow/react";
-import type { NodeType, StudioNode } from "./domain.ts";
+import type { Edge, Node } from "@xyflow/react";
+import type { NodeType, StudioEdge, StudioNode } from "./domain.ts";
 
 /** Nome de cada tipo de nó na interface; o `satisfies` obriga a cobrir todo NodeType do contrato. */
 export const NODE_LABELS = {
@@ -34,4 +34,24 @@ export type StudioFlowNode<TConfig = StudioNode["data"], TType extends NodeType 
 /** StudioNode (contrato de domínio) → nó do React Flow. */
 export function toFlowNode({ id, type, position, data, ...execution }: StudioNode): StudioFlowNode {
   return { id, type, position, data: { ...execution, config: data } };
+}
+
+/** `active` força o indicador de fluxo ativo da aresta, com ou sem nós executando. */
+export type StudioFlowEdge = Edge<{ active?: boolean }>;
+
+/** Nome acessível da aresta (o padrão do React Flow é "Edge from a to b", em inglês). */
+export function edgeAriaLabel(source: string, target: string) {
+  return `Conexão de ${source} para ${target}`;
+}
+
+/**
+ * StudioEdge → aresta do React Flow. O `animated` do contrato vira `data.active`: no
+ * `animated` do React Flow entraria a animação dele, que ignora prefers-reduced-motion.
+ */
+export function toFlowEdge({ animated, ...edge }: StudioEdge): StudioFlowEdge {
+  return {
+    ...edge,
+    data: { active: animated === true },
+    ariaLabel: edgeAriaLabel(edge.source, edge.target),
+  };
 }
