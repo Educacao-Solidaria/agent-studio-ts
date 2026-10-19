@@ -14,6 +14,7 @@ import {
   useKeyPress,
   useNodesState,
   useReactFlow,
+  type XYPosition,
 } from "@xyflow/react";
 import { useCallback, useRef, useState } from "react";
 import { cn } from "../lib/cn.ts";
@@ -30,6 +31,7 @@ import {
 } from "./flow.ts";
 import { FlowEdge } from "./flow-edge.tsx";
 import { NodeDrawer } from "./node-drawer.tsx";
+import { NodePalette } from "./node-palette.tsx";
 import { nodeTypes } from "./node-types.ts";
 import { duplicateSelection, selectAll } from "./selection.ts";
 import { keyHint, SHORTCUTS, useShortcuts } from "./shortcuts.ts";
@@ -134,8 +136,9 @@ function ConnectionFeedback() {
 
 /**
  * Canvas infinito do estúdio: pan sem limite (arrastar o fundo ou Espaço + arrastar), zoom
- * por roda, pinça ou duplo clique entre MIN_ZOOM e MAX_ZOOM, e enquadramento inicial de
- * todos os nós. O estado (posições, medidas, seleção, arestas) fica no React Flow.
+ * por roda, pinça ou controles entre MIN_ZOOM e MAX_ZOOM, e enquadramento inicial de todos os
+ * nós. O duplo clique no fundo é da paleta de nós, não do zoom. O estado (posições, medidas,
+ * seleção, arestas) fica no React Flow.
  */
 export function StudioCanvas({
   initialNodes = [],
@@ -185,6 +188,14 @@ export function StudioCanvas({
     [setNodes],
   );
   const root = useRef<HTMLDivElement>(null);
+  // Ponto da tela onde a paleta insere o nó; null = paleta fechada.
+  const [insertAt, setInsertAt] = useState<XYPosition | null>(null);
+  const openPaletteAtCenter = () => {
+    const box = root.current?.querySelector(".react-flow")?.getBoundingClientRect();
+    setInsertAt(
+      box ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : { x: 0, y: 0 },
+    );
+  };
   const closeDrawer = useCallback(
     (id: string) => {
       setNodes((current) => current.map((node) => ({ ...node, selected: false })));
@@ -214,11 +225,17 @@ export function StudioCanvas({
         deleteKeyCode={DELETE_KEYS}
         panActivationKeyCode={PAN_KEY}
         nodesDraggable={!panning}
+        zoomOnDoubleClick={false}
+        onDoubleClick={(event) => {
+          const onPane = (event.target as Element).classList.contains("react-flow__pane");
+          if (onPane) setInsertAt({ x: event.clientX, y: event.clientY });
+        }}
         ariaLabelConfig={ARIA_LABELS}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} />
         <CanvasNavigation />
-        <CanvasToolbar {...history} />
+        <CanvasToolbar onAddNode={openPaletteAtCenter} {...history} />
+        <NodePalette at={insertAt} onClose={() => setInsertAt(null)} />
         <ConnectionFeedback />
       </ReactFlow>
       <NodeDrawer node={editing} onSave={saveConfig} onClose={closeDrawer} />

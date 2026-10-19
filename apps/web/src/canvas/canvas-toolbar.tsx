@@ -126,6 +126,8 @@ function OrganizeButton() {
 }
 
 export type CanvasToolbarProps = {
+  /** Abre a paleta de nós (o nó entra no centro da vista). */
+  onAddNode: () => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -133,11 +135,22 @@ export type CanvasToolbarProps = {
 };
 
 /** Ferramentas no canto do canvas: o que o teclado faz, também ao alcance do mouse e do toque. */
-export function CanvasToolbar({ undo, redo, canUndo, canRedo }: CanvasToolbarProps) {
+export function CanvasToolbar({ onAddNode, undo, redo, canUndo, canRedo }: CanvasToolbarProps) {
   return (
     <Panel position="top-left">
       {/* fieldset: o grupo nativo (papel "group"), com nome para o leitor de tela. */}
       <fieldset aria-label="Ferramentas do canvas" className="flex gap-1">
+        <Button
+          variant="secondary"
+          size="icon"
+          className="size-8"
+          aria-label="Adicionar nó"
+          aria-haspopup="dialog"
+          title="Adicionar nó (ou duplo clique no fundo do canvas)"
+          onClick={onAddNode}
+        >
+          <Icon name="add" />
+        </Button>
         <Tool id="undo" icon="undo" onClick={undo} disabled={!canUndo} />
         <Tool id="redo" icon="redo" onClick={redo} disabled={!canRedo} />
         <OrganizeButton />
