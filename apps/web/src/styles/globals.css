@@ -150,6 +150,14 @@
   --xy-attribution-background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
 }
 
+/* Gradiente da FlowEdge. Na camada do React Flow e menos específica que as regras dele de
+ * seleção e foco (`.react-flow__edge.selected …`), que trocam a cor do traço e por isso vencem. */
+@layer components {
+  .react-flow__edge-flow .react-flow__edge-path {
+    stroke: var(--flow-edge-stroke);
+  }
+}
+
 /* O React Flow tira o outline do nó focado; quem navega por teclado precisa vê-lo. */
 .react-flow__node.selectable:focus-visible {
   outline: 2px solid var(--color-ring);
@@ -163,6 +171,14 @@
   --animate-fade-out: fade-out 100ms ease-in;
   --animate-pop-in: pop-in 150ms ease-out;
   --animate-pop-out: pop-out 100ms ease-in;
+  /* Fluxo ativo na aresta: um período do tracejado (4 + 12) andando da origem ao destino. */
+  --animate-flow-dash: flow-dash 800ms linear infinite;
+
+  @keyframes flow-dash {
+    to {
+      stroke-dashoffset: -16;
+    }
+  }
 
   @keyframes fade-in {
     from {
@@ -188,12 +204,14 @@
   }
 }
 
-/* Sem animação para quem pediu menos movimento; o Radix desmonta na hora. */
+/* Sem animação para quem pediu menos movimento; o Radix desmonta na hora e o tracejado das
+ * arestas ativas fica parado. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --animate-fade-in: none;
     --animate-fade-out: none;
     --animate-pop-in: none;
     --animate-pop-out: none;
+    --animate-flow-dash: none;
   }
 }

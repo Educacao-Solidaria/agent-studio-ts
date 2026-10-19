@@ -12,12 +12,13 @@ describe("tokens de tema", () => {
   const light = varsIn(":root {");
 
   it("o modo escuro redefine exatamente os mesmos tokens do claro", () => {
+    expect(light).toContain("--background"); // CSS vazio faria os dois testes passarem sem comparar
     expect(varsIn(':root:not([data-theme="light"])')).toEqual(light);
     expect(varsIn(':root[data-theme="dark"]')).toEqual(light);
   });
 
   it("todo token de cor vira utilitário do Tailwind via @theme", () => {
-    const exposed = varsIn("@theme inline");
+    const exposed = varsIn("@theme inline {");
     for (const token of light) expect(exposed).toContain(`--color-${token.slice(2)}`);
   });
 });

@@ -4,7 +4,6 @@ import {
   Background,
   BackgroundVariant,
   type Connection,
-  type Edge,
   ReactFlow,
   useEdgesState,
   useNodesState,
@@ -12,7 +11,8 @@ import {
 import { useCallback, useState } from "react";
 import { cn } from "../lib/cn.ts";
 import type { StudioEdge, StudioNode } from "./domain.ts";
-import { toFlowNode } from "./flow.ts";
+import { edgeAriaLabel, toFlowEdge, toFlowNode } from "./flow.ts";
+import { FlowEdge } from "./flow-edge.tsx";
 import { nodeTypes } from "./node-types.ts";
 
 /** Zoom de 10% (um fluxo grande inteiro na tela) a 200% (ler o detalhe de um nó). */
@@ -23,6 +23,9 @@ export const MAX_ZOOM = 2;
 // reprocessaria a configuração em todo frame de arraste.
 /** Enquadra todos os nós na abertura, sem ampliar um fluxo pequeno além de 100%. */
 const FIT_VIEW = { padding: 0.2, maxZoom: 1 };
+/** Toda aresta, inclusive a criada ao conectar portas, é desenhada pela FlowEdge. */
+const EDGE_TYPES = { flow: FlowEdge };
+const DEFAULT_EDGE = { type: "flow" };
 /** O padrão do React Flow é só Backspace; a descrição acessível promete Delete também. */
 const DELETE_KEYS = ["Backspace", "Delete"];
 /**
@@ -56,10 +59,17 @@ export function StudioCanvas({
   className,
 }: StudioCanvasProps) {
   const [startNodes] = useState(() => initialNodes.map(toFlowNode));
+  const [startEdges] = useState(() => initialEdges.map(toFlowEdge));
   const [nodes, , onNodesChange] = useNodesState(startNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(startEdges);
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((current) => addEdge(connection, current)),
+    (connection: Connection) =>
+      setEdges((current) =>
+        addEdge(
+          { ...connection, ariaLabel: edgeAriaLabel(connection.source, connection.target) },
+          current,
+        ),
+      ),
     [setEdges],
   );
 
@@ -69,6 +79,8 @@ export function StudioCanvas({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={EDGE_TYPES}
+        defaultEdgeOptions={DEFAULT_EDGE}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

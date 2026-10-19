@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StudioNode } from "./domain.ts";
-import { toFlowNode } from "./flow.ts";
+import { toFlowEdge, toFlowNode } from "./flow.ts";
 
 describe("flow", () => {
   it("toFlowNode leva a configuração para data.config e o estado de execução junto", () => {
@@ -21,6 +21,20 @@ describe("flow", () => {
       state: "error",
       error: "timeout",
       lastExecutionDurationMs: 0,
+    });
+  });
+
+  it("toFlowEdge leva o animated para data.active e nomeia a conexão em pt-BR", () => {
+    expect(toFlowEdge({ id: "e", source: "a", target: "b", sourceHandle: "out" })).toEqual({
+      id: "e",
+      source: "a",
+      target: "b",
+      sourceHandle: "out",
+      data: { active: false },
+      ariaLabel: "Conexão de a para b",
+    });
+    expect(toFlowEdge({ id: "e", source: "a", target: "b", animated: true }).data).toEqual({
+      active: true,
     });
   });
 });

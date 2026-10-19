@@ -12,5 +12,8 @@ export default defineConfig(({ command, mode }) => ({
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["src/test/setup.ts"],
+    // Sem isto o vitest troca todo .css por "" — até `?raw`, e os testes que leem o CSS
+    // passariam sem comparar nada. Só o texto cru entra; CSS importado como estilo segue vazio.
+    css: { include: [/\.css\?raw$/] },
   },
 }));
