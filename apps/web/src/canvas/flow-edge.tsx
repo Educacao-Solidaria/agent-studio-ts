@@ -2,6 +2,7 @@ import { BaseEdge, type EdgeProps, getBezierPath, useNodesData } from "@xyflow/r
 import { type CSSProperties, useId } from "react";
 import type { NodeExecutionState } from "./domain.ts";
 import { STATE_COLORS, type StudioFlowEdge, type StudioFlowNode } from "./flow.ts";
+import { useLiveStatus } from "./node-status.ts";
 
 /**
  * Há dado em trânsito quando o destino está executando e a origem já entregou a saída
@@ -21,8 +22,11 @@ export function FlowEdge(props: EdgeProps<StudioFlowEdge>) {
   const [path] = getBezierPath(props);
   // Id único por aresta: com id repetido, todas pintariam com o gradiente da primeira.
   const gradientId = `flow-edge-${useId()}`;
-  const from = useNodesData<StudioFlowNode>(source)?.data.state ?? "idle";
-  const to = useNodesData<StudioFlowNode>(target)?.data.state ?? "idle";
+  const fromData = useNodesData<StudioFlowNode>(source)?.data.state;
+  const toData = useNodesData<StudioFlowNode>(target)?.data.state;
+  // Estado ao vivo da execução (assinado por nó) e, antes dela, o do contrato.
+  const from = useLiveStatus(source)?.state ?? fromData ?? "idle";
+  const to = useLiveStatus(target)?.state ?? toData ?? "idle";
   const active = data?.active === true || isTransmitting(from, to);
 
   return (

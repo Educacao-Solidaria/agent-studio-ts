@@ -7,6 +7,8 @@ import {
   Controls,
   type Edge,
   MiniMap,
+  MiniMapNode,
+  type MiniMapNodeProps,
   Panel,
   ReactFlow,
   useConnection,
@@ -16,7 +18,7 @@ import {
   useReactFlow,
   type XYPosition,
 } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../lib/cn.ts";
 import { CanvasToolbar } from "./canvas-toolbar.tsx";
 import { refusalMessage, refuseConnection } from "./connection-rules.ts";
@@ -32,6 +34,12 @@ import {
 import { FlowEdge } from "./flow-edge.tsx";
 import { NodeDrawer } from "./node-drawer.tsx";
 import { NodePalette } from "./node-palette.tsx";
+import {
+  createStatusStore,
+  type ExecutionSource,
+  StatusProvider,
+  useLiveStatus,
+} from "./node-status.ts";
 import { nodeTypes } from "./node-types.ts";
 import { duplicateSelection, selectAll } from "./selection.ts";
 import { keyHint, SHORTCUTS, useShortcuts } from "./shortcuts.ts";
@@ -67,6 +75,12 @@ const ARIA_LABELS: Partial<AriaLabelConfig> = {
 
 const miniMapColor = (node: StudioFlowNode) => STATE_COLORS[node.data.state];
 
+/** Nó do mini-mapa com a cor da execução ao vivo; antes dela, a do contrato (`miniMapColor`). */
+function MiniMapStatusNode(props: MiniMapNodeProps) {
+  const live = useLiveStatus(props.id);
+  return <MiniMapNode {...props} color={live ? STATE_COLORS[live.state] : props.color} />;
+}
+
 /**
  * Visão aérea e zoom. Mini-mapa: arrastar move a vista, a roda aproxima e um clique centraliza
  * ali mantendo o zoom (sem `zoom`, o setCenter do React Flow pularia para o máximo). Os
@@ -80,6 +94,7 @@ function CanvasNavigation() {
         pannable
         zoomable
         nodeColor={miniMapColor}
+        nodeComponent={MiniMapStatusNode}
         onClick={(_, { x, y }) => void setCenter(x, y, { zoom: getZoom() })}
       />
       <Controls showInteractive={false} fitViewOptions={FIT_VIEW} />
@@ -91,6 +106,8 @@ export type StudioCanvasProps = {
   /** Fluxo inicial; depois da montagem o estado é do canvas (mudar a prop não recarrega). */
   initialNodes?: StudioNode[];
   initialEdges?: StudioEdge[];
+  /** Transições ao vivo (a `NodeStateMachine` do Luan); sem elas, vale o `state` de cada nó. */
+  execution?: ExecutionSource;
   className?: string;
 };
 
@@ -143,8 +160,13 @@ function ConnectionFeedback() {
 export function StudioCanvas({
   initialNodes = [],
   initialEdges = [],
+  execution,
   className,
 }: StudioCanvasProps) {
+  // Execução fora do estado do React Flow: uma transição renderiza só o nó (e as arestas e o
+  // ponto do mini-mapa) dela, nunca o canvas inteiro.
+  const [statuses] = useState(createStatusStore);
+  useEffect(() => execution?.subscribeDetailed(statuses.apply), [execution, statuses]);
   const [startNodes] = useState(() => initialNodes.map(toFlowNode));
   const [startEdges] = useState(() => initialEdges.map(toFlowEdge));
   const [nodes, setNodes, onNodesChange] = useNodesState(startNodes);
@@ -207,38 +229,40 @@ export function StudioCanvas({
   );
 
   return (
-    <div ref={root} className={cn("flex size-full", className)}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={EDGE_TYPES}
-        defaultEdgeOptions={DEFAULT_EDGE}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        isValidConnection={isValidConnection}
-        minZoom={MIN_ZOOM}
-        maxZoom={MAX_ZOOM}
-        fitView
-        fitViewOptions={FIT_VIEW}
-        deleteKeyCode={DELETE_KEYS}
-        panActivationKeyCode={PAN_KEY}
-        nodesDraggable={!panning}
-        zoomOnDoubleClick={false}
-        onDoubleClick={(event) => {
-          const onPane = (event.target as Element).classList.contains("react-flow__pane");
-          if (onPane) setInsertAt({ x: event.clientX, y: event.clientY });
-        }}
-        ariaLabelConfig={ARIA_LABELS}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={16} />
-        <CanvasNavigation />
-        <CanvasToolbar onAddNode={openPaletteAtCenter} {...history} />
-        <NodePalette at={insertAt} onClose={() => setInsertAt(null)} />
-        <ConnectionFeedback />
-      </ReactFlow>
-      <NodeDrawer node={editing} onSave={saveConfig} onClose={closeDrawer} />
-    </div>
+    <StatusProvider value={statuses}>
+      <div ref={root} className={cn("flex size-full", className)}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={EDGE_TYPES}
+          defaultEdgeOptions={DEFAULT_EDGE}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          isValidConnection={isValidConnection}
+          minZoom={MIN_ZOOM}
+          maxZoom={MAX_ZOOM}
+          fitView
+          fitViewOptions={FIT_VIEW}
+          deleteKeyCode={DELETE_KEYS}
+          panActivationKeyCode={PAN_KEY}
+          nodesDraggable={!panning}
+          zoomOnDoubleClick={false}
+          onDoubleClick={(event) => {
+            const onPane = (event.target as Element).classList.contains("react-flow__pane");
+            if (onPane) setInsertAt({ x: event.clientX, y: event.clientY });
+          }}
+          ariaLabelConfig={ARIA_LABELS}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={16} />
+          <CanvasNavigation />
+          <CanvasToolbar onAddNode={openPaletteAtCenter} {...history} />
+          <NodePalette at={insertAt} onClose={() => setInsertAt(null)} />
+          <ConnectionFeedback />
+        </ReactFlow>
+        <NodeDrawer node={editing} onSave={saveConfig} onClose={closeDrawer} />
+      </div>
+    </StatusProvider>
   );
 }
