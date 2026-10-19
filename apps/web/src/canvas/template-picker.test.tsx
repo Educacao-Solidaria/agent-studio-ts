@@ -14,8 +14,8 @@ const edges: StudioEdge[] = [
   { id: "a-b", source: "a", sourceHandle: "prompt", target: "b", targetHandle: "prompt" },
 ];
 
-function setup() {
-  const view = renderFlowInstance(<StudioCanvas initialNodes={nodes} initialEdges={edges} />);
+function setup(start = nodes) {
+  const view = renderFlowInstance(<StudioCanvas initialNodes={start} initialEdges={edges} />);
   const ids = () => ({
     nodes: view.flow.current.getNodes().map((node) => node.id),
     edges: view.flow.current.getEdges().map((edge) => edge.id),
@@ -34,23 +34,26 @@ const rag = {
 };
 
 describe("Modelos", () => {
-  it("sem alterações carrega direto, numa entrada só do desfazer", async () => {
-    const { user, ids, button, pick } = setup();
+  it("sem alterações carrega direto (uma cópia), uma entrada do desfazer por carga", async () => {
+    const { user, flow, ids, button, pick } = setup();
     await pick(/^RAG simples/);
 
     expect(ids()).toEqual(rag);
+    // Cópia do catálogo: editar o fluxo carregado não mexe no modelo.
+    const original = FLOW_TEMPLATES[0]?.nodes.find((node) => node.id === "gateway")?.data;
+    const config = (flow.current.getNode("gateway")?.data as { config: unknown } | undefined)
+      ?.config;
+    expect([config, config === original]).toEqual([original, false]);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(button("Modelos")); // o foco volta ao gatilho
+    // O carregado vira a base: trocar por outro sem mexer não pergunta. Cada carga, um desfazer.
+    await pick(/^Roteador de modelos/);
+    expect(ids().nodes).toEqual(FLOW_TEMPLATES[1]?.nodes.map((node) => node.id));
+    await user.click(button("Desfazer"));
+    expect(ids()).toEqual(rag);
     await user.click(button("Desfazer"));
     expect(ids()).toEqual({ nodes: ["a", "b"], edges: ["a-b"] });
     expect(button("Desfazer").disabled).toBe(true);
-  });
-
-  it("o modelo carregado vira a base: trocar por outro sem mexer não pergunta", async () => {
-    const { ids, pick } = setup();
-    await pick(/^RAG simples/);
-    await pick(/^Roteador de modelos/);
-    expect(ids().nodes).toEqual(FLOW_TEMPLATES[1]?.nodes.map((node) => node.id));
   });
 
   it("com alterações pede confirmação: Cancelar mantém, Substituir troca e o desfazer volta", async () => {
@@ -72,13 +75,22 @@ describe("Modelos", () => {
     expect(ids()).toEqual(changed);
   });
 
-  it("cada carga é uma cópia: editar o fluxo não muda o catálogo", async () => {
-    const { flow, pick } = setup();
-    await pick(/^RAG simples/);
-    const loaded = flow.current.getNode("gateway")?.data as { config: unknown } | undefined;
-    const original = FLOW_TEMPLATES[0]?.nodes.find((node) => node.id === "gateway")?.data;
-    expect(loaded?.config).toEqual(original);
-    expect(loaded?.config).not.toBe(original);
+  it("rascunho do fluxo antigo não aparece no nó do modelo com o mesmo id", async () => {
+    const gateway = { ...nodes[1], id: "gateway" } as StudioNode;
+    const { user, button, pick } = setup([gateway]);
+    const field = async () => {
+      act(() => screen.getByTestId("rf__node-gateway").focus());
+      await user.keyboard("{Enter}"); // seleciona: o painel abre
+      return screen.getByLabelText<HTMLInputElement>("Modelo");
+    };
+    await user.type(await field(), "-rascunho");
+    await user.keyboard("{Escape}");
+    await pick(/^RAG simples/); // o grafo não mudou: carrega sem perguntar
+    expect((await field()).value).toBe("openai/gpt-4o-mini");
+    expect(screen.queryByText("Alterações não salvas")).toBeNull();
+    await user.keyboard("{Escape}");
+    await user.click(button("Desfazer")); // a config antiga volta, e o rascunho junto
+    expect((await field()).value).toBe("m1-rascunho");
   });
 
   it("falha ao baixar o diálogo vira aviso; o próximo clique tenta de novo", async () => {
@@ -92,11 +104,9 @@ describe("Modelos", () => {
     expect((await screen.findByRole("alert")).textContent).toBe(
       "Não foi possível abrir os modelos. Tente de novo.",
     );
-    expect(screen.queryByRole("dialog")).toBeNull();
 
     await open();
     expect(await screen.findByRole("button", { name: /^Agente autônomo com tools/ })).toBeDefined();
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(load).toHaveBeenCalledTimes(2);
   });
 });

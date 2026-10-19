@@ -94,10 +94,11 @@ export const sameDrawerProps = (a: NodeDrawerProps, b: NodeDrawerProps) =>
  * Painel lateral de propriedades do nó selecionado, com o formulário do tipo dele.
  * Rascunho por nó: trocar de nó, fechar o painel ou clicar no fundo não perde o que foi
  * digitado — volta ao reabrir o nó, com o aviso "Alterações não salvas", até Salvar (valida
- * e grava na config) ou Descartar. Ao abrir, o foco vai para o título; Esc fecha.
+ * e grava na config) ou Descartar. Ao abrir, o foco vai para o título; Esc fecha. O rascunho é
+ * da config em que foi digitado: trocada por fora (modelo com o mesmo id), ele não aparece.
  */
 export function NodeDrawer({ node, onSave, onClose }: NodeDrawerProps) {
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [drafts, setDrafts] = useState<Record<string, { base: unknown; draft: Draft }>>({});
   const titleId = useId();
   const title = useRef<HTMLHeadingElement>(null);
   const id = node?.id;
@@ -109,11 +110,16 @@ export function NodeDrawer({ node, onSave, onClose }: NodeDrawerProps) {
   const nodeId = node.id;
   const close = () => onClose(nodeId);
   const fields = formFor(node.type);
-  const saved = toDraft(node.data.config, fields);
-  const draft = drafts[nodeId] ?? saved;
+  const base = node.data.config;
+  const saved = toDraft(base, fields);
+  const current = (all: typeof drafts) => (all[nodeId]?.base === base ? all[nodeId]?.draft : null);
+  const draft = current(drafts) ?? saved;
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const change = (key: string) => (value: Draft[string]) =>
-    setDrafts((all) => ({ ...all, [nodeId]: { ...(all[nodeId] ?? saved), [key]: value } }));
+    setDrafts((all) => ({
+      ...all,
+      [nodeId]: { base, draft: { ...(current(all) ?? saved), [key]: value } },
+    }));
   const discard = () =>
     setDrafts((all) => Object.fromEntries(Object.entries(all).filter(([key]) => key !== nodeId)));
   const submit = (event: FormEvent<HTMLFormElement>) => {

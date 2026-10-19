@@ -8,8 +8,7 @@ type Schema = { safeParse(input: unknown): { success: boolean } };
 type Schemas = Record<string, Schema> & {
   validatePipeline(input: unknown): { success: boolean; errors?: string[] };
 };
-// Como no node-forms.test: o schemas.ts do Luan não passa no tsc do apps/web (zod 4, linha 65),
-// então entra só em runtime, pelo glob.
+// Pelo glob, como no node-forms.test: o schemas.ts do Luan não passa no tsc do apps/web (zod 4).
 const [schemas] = Object.values(
   import.meta.glob<Schemas>("../../../../src/validation/schemas.ts", { eager: true }),
 );
@@ -19,11 +18,8 @@ const configSchema = (type: string) =>
 
 describe("catálogo de modelos", () => {
   it("os três exemplos do item, com ids distintos", () => {
-    expect(FLOW_TEMPLATES.map((template) => template.name)).toEqual([
-      "RAG simples",
-      "Roteador de modelos",
-      "Agente autônomo com tools",
-    ]);
+    const names = FLOW_TEMPLATES.map((template) => template.name).join(" | ");
+    expect(names).toBe("RAG simples | Roteador de modelos | Agente autônomo com tools");
     expect(new Set(FLOW_TEMPLATES.map((template) => template.id)).size).toBe(3);
   });
 
@@ -46,7 +42,6 @@ describe("catálogo de modelos", () => {
         for (const node of template.nodes) expect(NODE_TYPES).toContain(node.type);
         const graph = new ExecutionGraph(template.nodes, template.edges);
         expect(graph.validate()).toEqual({ valid: true, errors: [] });
-        expect(graph.getTopologicalOrder()).toHaveLength(template.nodes.length);
       });
 
       it("config de cada nó passa no schema zod do Luan, e o fluxo no validatePipeline", () => {

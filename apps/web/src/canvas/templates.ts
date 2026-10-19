@@ -55,8 +55,7 @@ const gateway = (model: string, extra: Partial<GatewayNodeConfig> = {}) =>
 const ragSimples: FlowTemplate = {
   id: "rag-simples",
   name: "RAG simples",
-  description:
-    "A pergunta busca trechos na coleção de documentos, e o modelo responde com esse contexto.",
+  description: "A pergunta busca trechos na coleção, e o modelo responde com esse contexto.",
   nodes: [
     node(
       "prompt",

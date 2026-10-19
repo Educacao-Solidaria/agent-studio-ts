@@ -19,15 +19,15 @@ export type TemplatePickerProps = {
 };
 
 /**
- * Modelos: troca o fluxo do canvas por um fluxo pronto (o diálogo é o `TemplateDialog`). A base
- * vem do canvas, não do store do React Flow: com um ReactFlowProvider por fora, ele nasce vazio.
- * Falha ao baixar o diálogo vira aviso; o próximo clique tenta de novo.
+ * Modelos: troca o fluxo do canvas por um pronto. A base vem do canvas, não do store do React
+ * Flow (com um provider por fora ele nasce vazio). Falha ao baixar o diálogo vira aviso.
  */
 export function TemplatePicker({
   opening = EMPTY,
   load = loadTemplateDialog,
 }: TemplatePickerProps) {
   const loaded = useRef(opening);
+  const opener = useRef<HTMLButtonElement>(null);
   const [dialog, setDialog] = useState<DialogModule | null>(null);
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -47,6 +47,7 @@ export function TemplatePicker({
         size="sm"
         className="h-8 px-2.5"
         aria-haspopup="dialog"
+        ref={opener}
         onClick={show}
       >
         <Icon name="flow" />
@@ -57,7 +58,7 @@ export function TemplatePicker({
           Não foi possível abrir os modelos. Tente de novo.
         </p>
       )}
-      {dialog && <dialog.TemplateDialog open={open} onOpenChange={setOpen} loaded={loaded} />}
+      {dialog && <dialog.TemplateDialog {...{ open, loaded, opener }} onOpenChange={setOpen} />}
     </>
   );
 }

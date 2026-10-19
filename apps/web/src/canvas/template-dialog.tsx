@@ -1,5 +1,5 @@
 import { useReactFlow } from "@xyflow/react";
-import { type RefObject, useRef, useState } from "react";
+import { type RefObject, useState } from "react";
 import { Button } from "../components/ui/button.tsx";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../components/ui/dialog.tsx";
 import {
@@ -19,16 +19,14 @@ export type TemplateDialogProps = {
   onOpenChange: (open: boolean) => void;
   /** O último fluxo carregado: o canvas "tem alterações" quando difere dele. */
   loaded: RefObject<Graph>;
+  /** O botão que abriu o diálogo: o foco volta para ele (não há gatilho do Radix). */
+  opener: RefObject<HTMLButtonElement | null>;
 };
 
-/**
- * O catálogo de modelos (este módulo e os dados vêm sob demanda). Escolher um modelo com o canvas
- * alterado pede confirmação; a troca é uma entrada só do desfazer — Ctrl+Z volta o fluxo de antes.
- */
-export function TemplateDialog({ open, onOpenChange, loaded }: TemplateDialogProps) {
+/** O catálogo (vem sob demanda). Com o canvas alterado, pede confirmação antes de trocar. */
+export function TemplateDialog({ open, onOpenChange, loaded, opener }: TemplateDialogProps) {
   const flow = useReactFlow<StudioFlowNode, StudioFlowEdge>();
   const [pending, setPending] = useState<FlowTemplate | null>(null);
-  const opener = useRef<Element | null>(null);
   const toggle = (next: boolean) => {
     setPending(null);
     onOpenChange(next);
@@ -56,13 +54,9 @@ export function TemplateDialog({ open, onOpenChange, loaded }: TemplateDialogPro
       {/* nokey: com o canvas atrás do diálogo, Delete ou Ctrl+A aqui não agem nele. */}
       <DialogContent
         className="nokey max-w-md"
-        onOpenAutoFocus={() => {
-          opener.current = document.activeElement;
-        }}
         onCloseAutoFocus={(event) => {
-          // Aberto pelo botão da barra, sem gatilho do Radix: o foco volta para ele.
           event.preventDefault();
-          if (opener.current instanceof HTMLElement) opener.current.focus();
+          opener.current?.focus();
         }}
       >
         <DialogTitle>Modelos de fluxo</DialogTitle>
