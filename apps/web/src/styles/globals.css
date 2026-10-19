@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Na camada components: os utilitários do Tailwind (camada utilities) ganham do React Flow. */
+@import "@xyflow/react/dist/style.css" layer(components);
 
 /*
  * Tema do Agent Studio.
@@ -132,6 +134,27 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
+}
+
+/* Canvas (React Flow): as cores padrão dele trocadas pelos tokens, então claro/escuro seguem o tema. */
+.react-flow {
+  --xy-background-color: var(--color-background);
+  --xy-background-pattern-dots-color: var(--color-input);
+  --xy-edge-stroke: var(--color-muted-foreground);
+  --xy-edge-stroke-selected: var(--color-primary);
+  --xy-connectionline-stroke: var(--color-primary);
+  --xy-handle-background-color: var(--color-muted-foreground);
+  --xy-handle-border-color: var(--color-surface);
+  --xy-selection-background-color: color-mix(in oklab, var(--color-primary) 8%, transparent);
+  --xy-selection-border: 1px dashed var(--color-primary);
+  --xy-attribution-background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
+}
+
+/* O React Flow tira o outline do nó focado; quem navega por teclado precisa vê-lo. */
+.react-flow__node.selectable:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
 }
 
 /* Animações de entrada/saída dos overlays (Radix espera o animationend para desmontar). */

@@ -1,0 +1,32 @@
+import { act } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { vi } from "vitest";
+import { triggerAllResizes } from "./browser-mocks.ts";
+import { renderWithProviders } from "./render.tsx";
+
+/** Tamanhos que o jsdom não calcula (nele offsetWidth/offsetHeight são sempre 0). */
+export const FLOW_LAYOUT = {
+  pane: { width: 1000, height: 700 },
+  node: { width: 160, height: 56 },
+  handle: { width: 8, height: 8 },
+};
+
+function stubSize(getter: "offsetWidth" | "offsetHeight", key: "width" | "height") {
+  vi.spyOn(HTMLElement.prototype, getter, "get").mockImplementation(function (this: HTMLElement) {
+    const { classList } = this;
+    if (classList.contains("react-flow__handle")) return FLOW_LAYOUT.handle[key];
+    return (classList.contains("react-flow__node") ? FLOW_LAYOUT.node : FLOW_LAYOUT.pane)[key];
+  });
+}
+
+/**
+ * render para telas com React Flow: dá tamanho aos elementos e dispara os ResizeObserver.
+ * Sem medida o React Flow esconde os nós e não desenha arestas. O setup restaura os getters.
+ */
+export function renderFlow(ui: ReactElement) {
+  stubSize("offsetWidth", "width");
+  stubSize("offsetHeight", "height");
+  const result = renderWithProviders(ui);
+  act(() => triggerAllResizes());
+  return result;
+}
