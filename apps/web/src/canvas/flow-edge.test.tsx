@@ -40,15 +40,16 @@ describe("isTransmitting", () => {
 });
 
 describe("FlowEdge", () => {
-  it("cada aresta pinta com o próprio gradiente, de id único", () => {
+  it("cada aresta pinta com o próprio gradiente, de id único, sem traço inline", () => {
     renderFlow(<StudioCanvas initialNodes={nodes} initialEdges={edges} />);
 
     const ids = edges.map(({ id }) => edge(id).querySelector("linearGradient")?.id);
     expect(new Set(ids).size).toBe(edges.length);
     edges.forEach(({ id }, i) => {
-      expect(edge(id).querySelector<SVGElement>(".react-flow__edge-path")?.style.stroke).toBe(
-        `url("#${ids[i]}")`,
-      );
+      const path = edge(id).querySelector<SVGElement>(".react-flow__edge-path");
+      expect(path?.style.getPropertyValue("--flow-edge-stroke")).toBe(`url(#${ids[i]})`);
+      // `stroke` inline venceria as regras de seleção e de foco do teclado do React Flow.
+      expect(path?.style.stroke).toBe("");
     });
   });
 

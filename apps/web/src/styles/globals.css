@@ -150,6 +150,14 @@
   --xy-attribution-background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
 }
 
+/* Gradiente da FlowEdge. Na camada do React Flow e menos específica que as regras dele de
+ * seleção e foco (`.react-flow__edge.selected …`), que trocam a cor do traço e por isso vencem. */
+@layer components {
+  .react-flow__edge-flow .react-flow__edge-path {
+    stroke: var(--flow-edge-stroke);
+  }
+}
+
 /* O React Flow tira o outline do nó focado; quem navega por teclado precisa vê-lo. */
 .react-flow__node.selectable:focus-visible {
   outline: 2px solid var(--color-ring);

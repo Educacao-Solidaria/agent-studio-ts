@@ -1,5 +1,5 @@
 import { BaseEdge, type EdgeProps, getBezierPath, useNodesData } from "@xyflow/react";
-import { useId } from "react";
+import { type CSSProperties, useId } from "react";
 import type { NodeExecutionState } from "./domain.ts";
 import type { StudioFlowEdge, StudioFlowNode } from "./flow.ts";
 
@@ -26,7 +26,7 @@ export function isTransmitting(source?: NodeExecutionState, target?: NodeExecuti
  * prefers-reduced-motion os traços ficam parados: o "ativo" continua visível, sem movimento.
  */
 export function FlowEdge(props: EdgeProps<StudioFlowEdge>) {
-  const { source, target, data, selected, sourceX, sourceY, targetX, targetY } = props;
+  const { source, target, data, sourceX, sourceY, targetX, targetY } = props;
   const [path] = getBezierPath(props);
   // Id único por aresta: com id repetido, todas pintariam com o gradiente da primeira.
   const gradientId = `flow-edge-${useId()}`;
@@ -52,11 +52,14 @@ export function FlowEdge(props: EdgeProps<StudioFlowEdge>) {
       <BaseEdge
         path={path}
         markerEnd={props.markerEnd}
-        // Selecionada, a cor de seleção do tema (CSS do React Flow) vence o gradiente.
-        style={{
-          stroke: selected ? undefined : `url(#${gradientId})`,
-          strokeWidth: active ? 2.5 : 1.5,
-        }}
+        // O gradiente vai por variável, não por `stroke` inline: assim a cor de seleção e a de
+        // foco do teclado (regras do React Flow, mais específicas) ainda vencem — ver globals.css.
+        style={
+          {
+            "--flow-edge-stroke": `url(#${gradientId})`,
+            strokeWidth: active ? 2.5 : 1.5,
+          } as CSSProperties
+        }
       />
       {active && (
         <path
