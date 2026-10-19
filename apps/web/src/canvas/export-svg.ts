@@ -90,7 +90,7 @@ export function sceneOf(flow: Flow, statuses: StatusStore | null): Scene {
 
 const SVG = "http://www.w3.org/2000/svg";
 /** Margem em volta dos nós, em px. */
-export const PADDING = 24;
+const PADDING = 24;
 
 function element(name: string, attributes: Record<string, string | number>, text?: string) {
   const node = document.createElementNS(SVG, name);
