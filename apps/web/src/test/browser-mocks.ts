@@ -1,8 +1,8 @@
 import { vi } from "vitest";
 
 /**
- * jsdom não implementa matchMedia, ResizeObserver, IntersectionObserver nem clipboard.
- * O setup reinstala tudo antes de cada teste, então nenhum estado vaza entre testes.
+ * jsdom não implementa matchMedia, ResizeObserver, IntersectionObserver, DOMMatrixReadOnly
+ * nem clipboard. O setup reinstala tudo antes de cada teste, então nenhum estado vaza entre testes.
  */
 export function installBrowserMocks() {
   mediaQueries.clear();
@@ -10,6 +10,7 @@ export function installBrowserMocks() {
   vi.stubGlobal("matchMedia", matchMedia);
   vi.stubGlobal("ResizeObserver", MockResizeObserver);
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  vi.stubGlobal("DOMMatrixReadOnly", MockDOMMatrixReadOnly);
 
   let clipboardText = "";
   Object.defineProperty(navigator, "clipboard", {
@@ -81,6 +82,25 @@ export function triggerResize(target: Element, size: { width: number; height: nu
     if (!(observer instanceof MockResizeObserver) || !observer.targets.has(target)) continue;
     const entry = { target, contentRect } as unknown as ResizeObserverEntry;
     observer.callback([entry], observer as unknown as ResizeObserver);
+  }
+}
+
+/** Dispara cada ResizeObserver com todos os alvos que ele observa (a medição inicial do browser). */
+export function triggerAllResizes() {
+  for (const observer of observers) {
+    if (!(observer instanceof MockResizeObserver) || observer.targets.size === 0) continue;
+    const entries = [...observer.targets].map(
+      (target) => ({ target, contentRect: target.getBoundingClientRect() }) as ResizeObserverEntry,
+    );
+    observer.callback(entries, observer as unknown as ResizeObserver);
+  }
+}
+
+/** O React Flow só lê o zoom (m22) do transform do viewport: `translate(...) scale(z)`. */
+class MockDOMMatrixReadOnly {
+  readonly m22: number;
+  constructor(transform = "") {
+    this.m22 = Number(/scale\(([\d.]+)\)/.exec(transform)?.[1] ?? 1);
   }
 }
 

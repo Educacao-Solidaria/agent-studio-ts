@@ -8,6 +8,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 beforeEach(installBrowserMocks);
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   server.resetHandlers();
 });
