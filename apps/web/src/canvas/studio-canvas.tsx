@@ -14,7 +14,7 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { cn } from "../lib/cn.ts";
 import { refusalMessage, refuseConnection } from "./connection-rules.ts";
 import type { StudioEdge, StudioNode } from "./domain.ts";
@@ -26,6 +26,7 @@ import {
   toFlowNode,
 } from "./flow.ts";
 import { FlowEdge } from "./flow-edge.tsx";
+import { NodeDrawer } from "./node-drawer.tsx";
 import { nodeTypes } from "./node-types.ts";
 
 /** Zoom de 10% (um fluxo grande inteiro na tela) a 200% (ler o detalhe de um nó). */
@@ -139,7 +140,7 @@ export function StudioCanvas({
 }: StudioCanvasProps) {
   const [startNodes] = useState(() => initialNodes.map(toFlowNode));
   const [startEdges] = useState(() => initialEdges.map(toFlowEdge));
-  const [nodes, , onNodesChange] = useNodesState(startNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(startNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(startEdges);
   const onConnect = useCallback(
     (connection: Connection) =>
@@ -156,9 +157,26 @@ export function StudioCanvas({
     (link: Edge | Connection) => refuseConnection(link, { nodes, edges }) === null,
     [nodes, edges],
   );
+  const selected = nodes.filter((node) => node.selected);
+  const editing = selected.length === 1 ? selected[0] : undefined; // um nó por vez
+  const saveConfig = useCallback(
+    (id: string, config: Record<string, unknown>) =>
+      setNodes((all) => all.map((n) => (n.id === id ? { ...n, data: { ...n.data, config } } : n))),
+    [setNodes],
+  );
+  const root = useRef<HTMLDivElement>(null);
+  const closeDrawer = useCallback(
+    (id: string) => {
+      setNodes((current) => current.map((node) => ({ ...node, selected: false })));
+      // O foco volta ao nó no canvas: quem fechou pelo teclado continua de onde abriu.
+      const elements = root.current?.querySelectorAll<HTMLElement>(".react-flow__node") ?? [];
+      [...elements].find((element) => element.dataset.id === id)?.focus();
+    },
+    [setNodes],
+  );
 
   return (
-    <div className={cn("size-full", className)}>
+    <div ref={root} className={cn("flex size-full", className)}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -180,6 +198,7 @@ export function StudioCanvas({
         <CanvasNavigation />
         <ConnectionFeedback />
       </ReactFlow>
+      <NodeDrawer node={editing} onSave={saveConfig} onClose={closeDrawer} />
     </div>
   );
 }
