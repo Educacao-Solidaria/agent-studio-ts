@@ -8,3 +8,10 @@ export type {
   StudioEdge,
   StudioNode,
 } from "../../../../src/types/domain.ts";
+export type {
+  CacheNodeConfig,
+  EvalNodeConfig,
+  GatewayNodeConfig,
+  PromptNodeConfig,
+  RagNodeConfig,
+} from "../../../../src/types/nodes.ts";
