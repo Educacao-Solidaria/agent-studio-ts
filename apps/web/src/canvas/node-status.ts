@@ -37,6 +37,8 @@ export type StatusStore = ReturnType<typeof createStatusStore>;
 
 const StatusContext = createContext<StatusStore | null>(null);
 export const StatusProvider = StatusContext.Provider;
+/** O store inteiro, para quem lê o estado de todos os nós de uma vez (ex.: exportar a imagem). */
+export const useStatusStore = () => useContext(StatusContext);
 
 /**
  * A execução ao vivo de um nó, assinada só para ele (`useSyncExternalStore` por id). Antes da

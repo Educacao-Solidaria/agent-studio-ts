@@ -11,7 +11,7 @@ import { NODE_PORTS, PORT_TYPE_LABELS, type Port } from "./ports.ts";
 type StateBadge = { label: string; variant: BadgeProps["variant"]; icon: IconName };
 
 /** Estado não é só cor: cada um tem ícone e texto (o ícone é decorativo; o texto é lido). */
-const STATES: Record<NodeExecutionState, StateBadge> = {
+export const STATES: Record<NodeExecutionState, StateBadge> = {
   idle: { label: "Ocioso", variant: "neutral", icon: "idle" },
   queued: { label: "Na fila", variant: "warning", icon: "queued" },
   running: { label: "Executando", variant: "primary", icon: "loading" },
