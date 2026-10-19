@@ -14,11 +14,20 @@ describe("shortcutOf", () => {
     expect(press("Z", { metaKey: true, shiftKey: true })).toBe("redo");
   });
 
+  it("Ctrl/Cmd+D duplica e Ctrl/Cmd+A seleciona tudo", () => {
+    expect(press("d", { ctrlKey: true })).toBe("duplicate");
+    expect(press("a", { metaKey: true })).toBe("selectAll");
+  });
+
   it("sem Ctrl/Cmd, com Alt (AltGr) ou em outra tecla não é atalho", () => {
     expect(press("z")).toBeUndefined();
     expect(press("z", { ctrlKey: true, altKey: true })).toBeUndefined();
     expect(press("x", { ctrlKey: true })).toBeUndefined();
     expect(press("Y", { ctrlKey: true, shiftKey: true })).toBeUndefined();
+    // Delete e Espaço são do React Flow: o ouvinte do mapa não os executa.
+    expect(
+      shortcutOf(new KeyboardEvent("keydown", { key: "Delete", ctrlKey: true })),
+    ).toBeUndefined();
   });
 
   it("em layout não latino vale a tecla física", () => {
@@ -31,10 +40,12 @@ describe("dicas", () => {
   it("aria-keyshortcuts lista Control e Meta de cada combinação", () => {
     expect(ariaKeys("undo")).toBe("Control+Z Meta+Z");
     expect(ariaKeys("redo")).toBe("Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z");
+    expect(ariaKeys("remove")).toBe("Delete Backspace");
   });
 
   it("a dica visível mostra a primeira combinação com Ctrl", () => {
     expect(keyHint("undo")).toBe("Ctrl+Z");
     expect(keyHint("redo")).toBe("Ctrl+Y");
+    expect(keyHint("pan")).toBe("Espaço");
   });
 });
