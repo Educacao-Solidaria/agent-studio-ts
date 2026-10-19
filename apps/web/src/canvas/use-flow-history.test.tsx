@@ -1,8 +1,8 @@
-import { createEvent, fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { act } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { renderFlowInstance } from "../test/flow.tsx";
+import { describe, expect, it } from "vitest";
+import { mouseOn, renderFlowInstance } from "../test/flow.tsx";
 import type { StudioEdge, StudioNode } from "./domain.ts";
 import type { StudioFlowNode } from "./flow.ts";
 import { StudioCanvas } from "./studio-canvas.tsx";
@@ -69,16 +69,7 @@ describe("desfazer e refazer no canvas", () => {
 
   it("arrastar vira uma entrada só, gravada quando o arraste termina", async () => {
     const { user, button, node } = setup();
-    // O d3-drag do React Flow lê `view` (o user-event manda null) e o retângulo do canvas: com
-    // o 0 × 0 do jsdom o mouse estaria sempre na borda e o auto-pan moveria o nó sozinho.
-    const pane = DOMRectReadOnly.fromRect({ width: 1000, height: 700 }) as DOMRect;
-    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(pane);
-    const element = screen.getByTestId("rf__node-a");
-    const mouse = (type: "mouseDown" | "mouseMove" | "mouseUp", x: number, y: number) => {
-      const event = createEvent[type](element, { clientX: x, clientY: y });
-      Object.defineProperty(event, "view", { value: window }); // o jsdom recusa no construtor
-      fireEvent(element, event);
-    };
+    const mouse = mouseOn(screen.getByTestId("rf__node-a"));
     /** Arrasta 100 × 80 em dois passos (o primeiro movimento só cruza o limiar de 1 px), longe
      * da borda de 40 px em que o auto-pan começa. */
     const drag = async (x: number, during?: () => Promise<void>) => {

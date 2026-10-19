@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import type { StudioFlowEdge, StudioFlowNode } from "./flow.ts";
 import { createHistory, record, redo, undo } from "./history.ts";
 
@@ -74,18 +74,21 @@ export function useFlowHistory(
     setHistory(latest.current);
   }, [nodes, edges, dragging]);
 
-  const step = (move: typeof undo) => {
-    const next = move(latest.current);
-    if (dragging || next === latest.current) return;
-    latest.current = next;
-    setHistory(next);
-    setNodes((live) => restoreNodes(next.present.nodes, live));
-    setEdges((live) => restoreEdges(next.present.edges, live));
-  };
+  // Os mesmos comandos do início ao fim de um arraste: a barra (memo) não renderiza a cada quadro.
+  const commands = useMemo(() => {
+    const step = (move: typeof undo) => {
+      const next = move(latest.current);
+      if (dragging || next === latest.current) return;
+      latest.current = next;
+      setHistory(next);
+      setNodes((live) => restoreNodes(next.present.nodes, live));
+      setEdges((live) => restoreEdges(next.present.edges, live));
+    };
+    return { undo: () => step(undo), redo: () => step(redo) };
+  }, [dragging, setNodes, setEdges]);
 
   return {
-    undo: () => step(undo),
-    redo: () => step(redo),
+    ...commands,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
   };
