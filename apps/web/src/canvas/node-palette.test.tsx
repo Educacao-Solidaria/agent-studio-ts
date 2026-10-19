@@ -63,7 +63,7 @@ describe("NodePalette", () => {
     expect(flow.current.getNode("eval")).toBeUndefined();
   });
 
-  it("pela barra: setas dão a volta na lista e Esc fecha sem inserir, com o foco de volta", async () => {
+  it("pela barra: setas dão a volta, teclas do canvas não vazam e Esc fecha sem inserir", async () => {
     const { user, flow, palette, inPalette } = setup();
     const button = screen.getByRole("button", { name: "Adicionar nó" });
     await user.click(button);
@@ -76,6 +76,11 @@ describe("NodePalette", () => {
     expect(active()).toMatch(/^RAG híbrido/);
     await user.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
     expect(active()).toMatch(/^Personalizado/);
+    // Com o foco no Fechar, Delete e Ctrl+A ficam no diálogo: o nó selecionado atrás não sai.
+    act(() => flow.current.setNodes((all) => all.map((n) => ({ ...n, selected: true }))));
+    act(() => inPalette().getByRole("button", { name: "Fechar" }).focus());
+    await user.keyboard("{Delete}{Control>}a{/Control}");
+    expect(flow.current.getNodes()).toHaveLength(1);
     await user.keyboard("{Escape}");
     expect(palette()).toBeNull();
     expect(flow.current.getNodes()).toHaveLength(1);

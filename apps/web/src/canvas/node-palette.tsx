@@ -82,8 +82,9 @@ export function NodePalette({ at, onClose }: NodePaletteProps) {
 
   return (
     <Dialog open={at !== null} onOpenChange={(open) => !open && close()}>
+      {/* nokey: com o canvas atrás do diálogo, Delete ou Ctrl+A no botão Fechar não agem nele. */}
       <DialogContent
-        className="max-w-md"
+        className="nokey max-w-md"
         onOpenAutoFocus={() => {
           opener.current = document.activeElement;
         }}
