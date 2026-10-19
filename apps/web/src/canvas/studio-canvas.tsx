@@ -22,6 +22,7 @@ import { refusalMessage, refuseConnection } from "./connection-rules.ts";
 import type { StudioEdge, StudioNode } from "./domain.ts";
 import {
   edgeAriaLabel,
+  FIT_VIEW,
   STATE_COLORS,
   type StudioFlowNode,
   toFlowEdge,
@@ -40,8 +41,6 @@ export const MAX_ZOOM = 2;
 
 // Constantes de módulo: o React Flow compara as props a cada render, e um objeto novo
 // reprocessaria a configuração em todo frame de arraste.
-/** Enquadra todos os nós na abertura, sem ampliar um fluxo pequeno além de 100%. */
-const FIT_VIEW = { padding: 0.2, maxZoom: 1 };
 /** Toda aresta, inclusive a criada ao conectar portas, é desenhada pela FlowEdge. */
 const EDGE_TYPES = { flow: FlowEdge };
 const DEFAULT_EDGE = { type: "flow" };

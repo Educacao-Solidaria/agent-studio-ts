@@ -14,6 +14,9 @@ export const NODE_LABELS = {
 /** Todos os tipos de nó do contrato, em runtime. */
 export const NODE_TYPES = Object.keys(NODE_LABELS) as NodeType[];
 
+/** Enquadra todos os nós (abertura, controles, Organizar) sem ampliar um fluxo pequeno além de 100%. */
+export const FIT_VIEW = { padding: 0.2, maxZoom: 1 };
+
 /** Cor de cada estado de execução (tokens do tema): pontas da aresta e nós do mini-mapa. */
 export const STATE_COLORS: Record<NodeExecutionState, string> = {
   idle: "var(--color-muted-foreground)",

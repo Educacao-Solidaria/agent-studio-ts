@@ -1,9 +1,11 @@
-import { Panel } from "@xyflow/react";
+import { Panel, useReactFlow } from "@xyflow/react";
 import { Fragment, useId, useState } from "react";
 import { Icon, type IconName } from "../components/icons.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { popoverClass } from "../components/ui/overlay.ts";
 import { cn } from "../lib/cn.ts";
+import { layoutNodes, loadDagre } from "./auto-layout.ts";
+import { FIT_VIEW, type StudioFlowEdge, type StudioFlowNode } from "./flow.ts";
 import {
   ariaKeys,
   keyHint,
@@ -82,6 +84,47 @@ function ShortcutList() {
   );
 }
 
+/**
+ * Organizar: o dagre (sob demanda) arruma o fluxo e a vista reenquadra. Nós e arestas são lidos
+ * depois do download, então o que mudou enquanto ele chegava entra no layout. É uma mudança de
+ * posição como outra qualquer: uma entrada do desfazer. Falha (rede caiu no meio do download)
+ * vira aviso, e o fluxo fica como estava.
+ */
+function OrganizeButton() {
+  const flow = useReactFlow<StudioFlowNode, StudioFlowEdge>();
+  const [status, setStatus] = useState<"idle" | "busy" | "failed">("idle");
+  const organize = async () => {
+    setStatus("busy");
+    try {
+      const dagre = await loadDagre();
+      flow.setNodes(layoutNodes(dagre, flow.getNodes(), flow.getEdges()));
+      await flow.fitView(FIT_VIEW);
+      setStatus("idle");
+    } catch {
+      setStatus("failed");
+    }
+  };
+  return (
+    <>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="h-8 px-2.5"
+        disabled={status === "busy"}
+        onClick={organize}
+      >
+        <Icon name="layout" />
+        Organizar
+      </Button>
+      {status === "failed" && (
+        <p role="alert" className="self-center text-danger text-sm">
+          Não foi possível organizar. Tente de novo.
+        </p>
+      )}
+    </>
+  );
+}
+
 export type CanvasToolbarProps = {
   undo: () => void;
   redo: () => void;
@@ -97,6 +140,7 @@ export function CanvasToolbar({ undo, redo, canUndo, canRedo }: CanvasToolbarPro
       <fieldset aria-label="Ferramentas do canvas" className="flex gap-1">
         <Tool id="undo" icon="undo" onClick={undo} disabled={!canUndo} />
         <Tool id="redo" icon="redo" onClick={redo} disabled={!canRedo} />
+        <OrganizeButton />
         <ShortcutList />
       </fieldset>
     </Panel>
