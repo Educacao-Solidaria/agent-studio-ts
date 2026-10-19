@@ -34,8 +34,15 @@ describe("StudioCanvas", () => {
     expect(prompt.style.visibility).not.toBe("hidden");
     expect(within(prompt).getByText("Prompt")).toBeDefined();
     expect(within(prompt).getByText("Concluído")).toBeDefined();
-    expect(prompt.querySelectorAll(".react-flow__handle.target")).toHaveLength(1);
-    expect(prompt.querySelectorAll(".react-flow__handle.source")).toHaveLength(1);
+    // Portas do tipo (NODE_PORTS): o prompt só tem saída; o gateway, prompt e contexto.
+    const handles = (node: HTMLElement, kind: string) =>
+      [...node.querySelectorAll(`.react-flow__handle.${kind}`)].map((h) => h.getAttribute("title"));
+    expect(handles(prompt, "target")).toEqual([]);
+    expect(handles(prompt, "source")).toEqual(["Prompt (texto)"]);
+    expect(handles(screen.getByTestId("rf__node-b"), "target")).toEqual([
+      "Prompt (texto)",
+      "Contexto (documentos)",
+    ]);
 
     const gateway = within(screen.getByTestId("rf__node-b"));
     for (const text of ["Gateway", "Erro", "Chave da API inválida", "1,5 s"]) {
@@ -88,5 +95,35 @@ describe("StudioCanvas", () => {
     expect(screen.queryByTestId("rf__node-a")).toBeNull();
     expect(screen.queryByTestId("rf__edge-a-b")).toBeNull();
     expect(screen.getByTestId("rf__node-b")).toBeDefined();
+  });
+
+  it("clicar em duas portas liga só o que o validador aceita", async () => {
+    const flow: StudioNode[] = [
+      { id: "c", type: "cache", position: { x: 0, y: 0 }, state: "idle", data: {} },
+      { id: "r", type: "rag", position: { x: 0, y: 200 }, state: "idle", data: {} },
+      { id: "g", type: "gateway", position: { x: 300, y: 100 }, state: "idle", data: {} },
+    ];
+    const start = [
+      { id: "c-g", source: "c", sourceHandle: "response", target: "g", targetHandle: "prompt" },
+    ];
+    const { user } = renderFlow(<StudioCanvas initialNodes={flow} initialEdges={start} />);
+    const port = (node: string, id: string) =>
+      document.querySelector(`.react-flow__handle[data-nodeid="${node}"][data-handleid="${id}"]`);
+    const connect = async (from: [string, string], to: [string, string]) => {
+      await user.click(port(...from) as Element);
+      await user.click(port(...to) as Element);
+    };
+    const edgeCount = () => document.querySelectorAll(".react-flow__edge").length;
+
+    await connect(["r", "context"], ["g", "prompt"]); // documentos → texto
+    await connect(["g", "completion"], ["c", "query"]); // fecharia c → g → c
+    await connect(["c", "response"], ["c", "query"]); // o próprio nó
+    expect(edgeCount()).toBe(1);
+
+    await connect(["r", "context"], ["g", "context"]);
+    expect(edgeCount()).toBe(2);
+    expect(screen.getByLabelText("Conexão de r para g")).toBeDefined();
+    // Sem arraste o aviso de recusa fica vazio, mas presente para o leitor de tela anunciar.
+    expect(screen.getByRole("status").textContent).toBe("");
   });
 });

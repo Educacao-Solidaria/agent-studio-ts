@@ -11,6 +11,8 @@ export function installBrowserMocks() {
   vi.stubGlobal("ResizeObserver", MockResizeObserver);
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
   vi.stubGlobal("DOMMatrixReadOnly", MockDOMMatrixReadOnly);
+  // Sem layout não há nada sob o cursor; o React Flow cai no handle pelo data-id (clicar para ligar).
+  Object.defineProperty(document, "elementFromPoint", { configurable: true, value: () => null });
 
   let clipboardText = "";
   Object.defineProperty(navigator, "clipboard", {
