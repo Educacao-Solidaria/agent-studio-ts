@@ -6,7 +6,8 @@ import { useLiveStatus } from "./node-status.ts";
 
 /**
  * Há dado em trânsito quando o destino está executando e a origem já entregou a saída
- * (concluída) ou ainda a produz (executando, em streaming).
+ * (concluída) ou ainda a produz (executando, em streaming). Origem executando com o destino na
+ * fila ou ocioso ainda não mandou nada; origem com erro não manda.
  */
 export function isTransmitting(source?: NodeExecutionState, target?: NodeExecutionState) {
   return target === "running" && (source === "success" || source === "running");
@@ -14,8 +15,9 @@ export function isTransmitting(source?: NodeExecutionState, target?: NodeExecuti
 
 /**
  * Aresta do estúdio: gradiente da cor do estado da origem para a do destino, atualizado ao
- * vivo, e, com fluxo ativo, linha mais grossa com traços correndo no sentido do dado. Com
- * prefers-reduced-motion os traços ficam parados: o "ativo" continua visível, sem movimento.
+ * vivo, e, com fluxo ativo, linha mais grossa com traços correndo no sentido do dado e um pulso
+ * (o ponto) andando da origem ao destino. Com prefers-reduced-motion os traços ficam parados e o
+ * pulso fica no meio da aresta: o "ativo" continua visível, sem movimento.
  */
 export function FlowEdge(props: EdgeProps<StudioFlowEdge>) {
   const { source, target, data, sourceX, sourceY, targetX, targetY } = props;
@@ -57,11 +59,20 @@ export function FlowEdge(props: EdgeProps<StudioFlowEdge>) {
         }
       />
       {active && (
-        <path
-          d={path}
-          data-flow="active"
-          className="pointer-events-none animate-flow-dash fill-none stroke-2 stroke-surface [stroke-dasharray:4_12]"
-        />
+        <>
+          <path
+            d={path}
+            data-flow="active"
+            className="pointer-events-none animate-flow-dash fill-none stroke-2 stroke-surface [stroke-dasharray:4_12]"
+          />
+          {/* Motion Path do CSS no caminho da própria aresta: o navegador anima, sem JS por quadro. */}
+          <circle
+            r={5}
+            data-flow="pulse"
+            className="flow-pulse pointer-events-none animate-flow-pulse fill-primary stroke-surface"
+            style={{ "--flow-pulse-path": `path("${path}")` } as CSSProperties}
+          />
+        </>
       )}
     </>
   );
