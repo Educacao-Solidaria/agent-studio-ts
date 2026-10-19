@@ -177,6 +177,7 @@ export function StudioCanvas({
   useEffect(() => execution?.subscribeDetailed(statuses.apply), [execution, statuses]);
   const [startNodes] = useState(() => initialNodes.map(toFlowNode));
   const [startEdges] = useState(() => initialEdges.map(toFlowEdge));
+  const [opening] = useState(() => ({ nodes: startNodes, edges: startEdges }));
   const [nodes, setNodes, onNodesChange] = useNodesState(startNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(startEdges);
   const history = useFlowHistory(nodes, edges, setNodes, setEdges);
@@ -273,7 +274,7 @@ export function StudioCanvas({
         >
           <Background variant={BackgroundVariant.Dots} gap={16} />
           <CanvasNavigation />
-          <Toolbar onAddNode={openPaletteAtCenter} {...history} />
+          <Toolbar onAddNode={openPaletteAtCenter} opening={opening} {...history} />
           <Palette at={insertAt} onClose={closePalette} />
           <ConnectionFeedback />
         </ReactFlow>

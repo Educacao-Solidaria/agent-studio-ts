@@ -15,6 +15,7 @@ import {
   SHORTCUTS,
   type ShortcutId,
 } from "./shortcuts.ts";
+import { TemplatePicker, type TemplatePickerProps } from "./template-picker.tsx";
 
 type ToolProps = { id: ShortcutId; icon: IconName; onClick: () => void; disabled: boolean };
 
@@ -166,7 +167,7 @@ function ExportButton() {
   );
 }
 
-export type CanvasToolbarProps = {
+export type CanvasToolbarProps = Pick<TemplatePickerProps, "opening"> & {
   /** Abre a paleta de nós (o nó entra no centro da vista). */
   onAddNode: () => void;
   undo: () => void;
@@ -176,7 +177,8 @@ export type CanvasToolbarProps = {
 };
 
 /** Ferramentas no canto do canvas: o que o teclado faz, também ao alcance do mouse e do toque. */
-export function CanvasToolbar({ onAddNode, undo, redo, canUndo, canRedo }: CanvasToolbarProps) {
+export function CanvasToolbar(props: CanvasToolbarProps) {
+  const { onAddNode, undo, redo, canUndo, canRedo, opening } = props;
   return (
     <Panel position="top-left">
       {/* fieldset: o grupo nativo (papel "group"), com nome para o leitor de tela. */}
@@ -194,6 +196,7 @@ export function CanvasToolbar({ onAddNode, undo, redo, canUndo, canRedo }: Canva
         </Button>
         <Tool id="undo" icon="undo" onClick={undo} disabled={!canUndo} />
         <Tool id="redo" icon="redo" onClick={redo} disabled={!canRedo} />
+        <TemplatePicker opening={opening} />
         <OrganizeButton />
         <ExportButton />
         <ShortcutList />
