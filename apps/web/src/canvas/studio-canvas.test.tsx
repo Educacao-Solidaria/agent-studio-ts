@@ -123,5 +123,7 @@ describe("StudioCanvas", () => {
     await connect(["r", "context"], ["g", "context"]);
     expect(edgeCount()).toBe(2);
     expect(screen.getByLabelText("Conexão de r para g")).toBeDefined();
+    // Sem arraste o aviso de recusa fica vazio, mas presente para o leitor de tela anunciar.
+    expect(screen.getByRole("status").textContent).toBe("");
   });
 });

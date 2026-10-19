@@ -89,7 +89,8 @@ export type StudioCanvasProps = {
 
 /**
  * Aviso do porquê de uma ligação recusada, enquanto o arraste está sobre a porta de destino.
- * A região `status` fica sempre montada (vazia some na tela) para o leitor de tela anunciar.
+ * A região `status` fica sempre na árvore de acessibilidade (vazia, sem tamanho): região que
+ * aparece já com o texto, em vez de mudar de texto, muitos leitores de tela não anunciam.
  */
 function ConnectionFeedback() {
   const connection = useConnection();
@@ -113,12 +114,15 @@ function ConnectionFeedback() {
     }
   }
   return (
-    <Panel
-      position="top-center"
-      role="status"
-      className="rounded-md border border-danger bg-surface px-3 py-1.5 text-danger text-sm shadow-sm empty:hidden"
-    >
-      {message}
+    <Panel position="top-center">
+      <p
+        role="status"
+        className={cn(
+          message && "rounded-md border border-danger bg-surface px-3 py-1.5 text-danger text-sm",
+        )}
+      >
+        {message}
+      </p>
     </Panel>
   );
 }
