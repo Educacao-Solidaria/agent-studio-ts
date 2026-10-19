@@ -22,7 +22,8 @@ const sameEdge = (a: StudioFlowEdge, b: StudioFlowEdge) =>
 const sameList = <T>(a: T[], b: T[], same: (x: T, y: T) => boolean) =>
   a.length === b.length && a.every((item, i) => same(item, b[i] as T));
 
-const sameGraph = (a: FlowSnapshot, b: FlowSnapshot) =>
+/** Mesmo grafo para o desfazer (e para os Modelos saberem se o canvas tem alterações). */
+export const sameGraph = (a: FlowSnapshot, b: FlowSnapshot) =>
   sameList(a.nodes, b.nodes, sameNode) && sameList(a.edges, b.edges, sameEdge);
 
 /** O nó volta como no snapshot, mas com a seleção, a medida e a execução de agora. */
