@@ -11,14 +11,15 @@ import {
   type MiniMapNodeProps,
   Panel,
   ReactFlow,
-  useConnection,
+  type ReactFlowState,
   useEdgesState,
   useKeyPress,
   useNodesState,
   useReactFlow,
+  useStore,
   type XYPosition,
 } from "@xyflow/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../lib/cn.ts";
 import { CanvasToolbar } from "./canvas-toolbar.tsx";
 import { refusalMessage, refuseConnection } from "./connection-rules.ts";
@@ -32,7 +33,7 @@ import {
   toFlowNode,
 } from "./flow.ts";
 import { FlowEdge } from "./flow-edge.tsx";
-import { NodeDrawer } from "./node-drawer.tsx";
+import { NodeDrawer, sameDrawerProps } from "./node-drawer.tsx";
 import { NodePalette } from "./node-palette.tsx";
 import {
   createStatusStore,
@@ -75,6 +76,12 @@ const ARIA_LABELS: Partial<AriaLabelConfig> = {
 
 const miniMapColor = (node: StudioFlowNode) => STATE_COLORS[node.data.state];
 
+// O canvas renderiza a cada quadro de arraste (os nós vivem aqui). Barra, paleta e painel não
+// dependem da posição dos nós: com props estáveis, o memo os deixa parados durante o arraste.
+const Toolbar = memo(CanvasToolbar);
+const Palette = memo(NodePalette);
+const Drawer = memo(NodeDrawer, sameDrawerProps);
+
 /** Nó do mini-mapa com a cor da execução ao vivo; antes dela, a do contrato (`miniMapColor`). */
 function MiniMapStatusNode(props: MiniMapNodeProps) {
   const live = useLiveStatus(props.id);
@@ -111,32 +118,33 @@ export type StudioCanvasProps = {
   className?: string;
 };
 
+/** O porquê da recusa enquanto a ligação em arraste está sobre uma porta que não a aceita. */
+function refusalNow({ connection, nodes, edges }: ReactFlowState): string {
+  if (!connection.inProgress || connection.isValid !== false || !connection.toHandle) return "";
+  const { fromHandle, toHandle } = connection;
+  if (fromHandle.type === toHandle.type)
+    return "Ligue uma saída (direita) a uma entrada (esquerda).";
+  const [out, into] =
+    fromHandle.type === "source" ? [fromHandle, toHandle] : [toHandle, fromHandle];
+  const link = {
+    source: out.nodeId,
+    sourceHandle: out.id,
+    target: into.nodeId,
+    targetHandle: into.id,
+  };
+  const refusal = refuseConnection(link, { nodes, edges });
+  return refusal ? refusalMessage(refusal) : "";
+}
+
 /**
- * Aviso do porquê de uma ligação recusada, enquanto o arraste está sobre a porta de destino.
- * A região `status` fica sempre na árvore de acessibilidade (vazia, sem tamanho): região que
- * aparece já com o texto, em vez de mudar de texto, muitos leitores de tela não anunciam.
+ * Aviso do porquê de uma ligação recusada, enquanto o arraste está sobre a porta de destino. O
+ * seletor do store devolve o próprio texto: o aviso renderiza quando o texto muda, não a cada
+ * movimento do mouse. A região `status` fica sempre na árvore de acessibilidade (vazia, sem
+ * tamanho): região que aparece já com o texto, em vez de mudar de texto, muitos leitores de tela
+ * não anunciam.
  */
-function ConnectionFeedback() {
-  const connection = useConnection();
-  const { getNodes, getEdges } = useReactFlow();
-  let message = "";
-  if (connection.inProgress && connection.isValid === false && connection.toHandle) {
-    const { fromHandle, toHandle } = connection;
-    if (fromHandle.type === toHandle.type) {
-      message = "Ligue uma saída (direita) a uma entrada (esquerda).";
-    } else {
-      const [out, into] =
-        fromHandle.type === "source" ? [fromHandle, toHandle] : [toHandle, fromHandle];
-      const link = {
-        source: out.nodeId,
-        sourceHandle: out.id,
-        target: into.nodeId,
-        targetHandle: into.id,
-      };
-      const refusal = refuseConnection(link, { nodes: getNodes(), edges: getEdges() });
-      message = refusal ? refusalMessage(refusal) : "";
-    }
-  }
+const ConnectionFeedback = memo(function ConnectionFeedback() {
+  const message = useStore(refusalNow);
   return (
     <Panel position="top-center">
       <p
@@ -149,7 +157,7 @@ function ConnectionFeedback() {
       </p>
     </Panel>
   );
-}
+});
 
 /**
  * Canvas infinito do estúdio: pan sem limite (arrastar o fundo ou Espaço + arrastar), zoom
@@ -198,9 +206,16 @@ export function StudioCanvas({
     [setEdges],
   );
   // Recusa no arraste: o React Flow nem chama o onConnect, e a linha e a porta ficam vermelhas.
+  // O grafo vem por ref: uma função nova a cada quadro de arraste seria mais uma atualização do
+  // store do React Flow (e mais uma rodada de todos os seletores dele) por quadro. Layout effect:
+  // a ref já tem o grafo do commit antes de qualquer evento seguinte consultar a função.
+  const graph = useRef({ nodes, edges });
+  useLayoutEffect(() => {
+    graph.current = { nodes, edges };
+  });
   const isValidConnection = useCallback(
-    (link: Edge | Connection) => refuseConnection(link, { nodes, edges }) === null,
-    [nodes, edges],
+    (link: Edge | Connection) => refuseConnection(link, graph.current) === null,
+    [],
   );
   const selected = nodes.filter((node) => node.selected);
   const editing = selected.length === 1 ? selected[0] : undefined; // um nó por vez
@@ -212,12 +227,13 @@ export function StudioCanvas({
   const root = useRef<HTMLDivElement>(null);
   // Ponto da tela onde a paleta insere o nó; null = paleta fechada.
   const [insertAt, setInsertAt] = useState<XYPosition | null>(null);
-  const openPaletteAtCenter = () => {
+  const openPaletteAtCenter = useCallback(() => {
     const box = root.current?.querySelector(".react-flow")?.getBoundingClientRect();
     setInsertAt(
       box ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : { x: 0, y: 0 },
     );
-  };
+  }, []);
+  const closePalette = useCallback(() => setInsertAt(null), []);
   const closeDrawer = useCallback(
     (id: string) => {
       setNodes((current) => current.map((node) => ({ ...node, selected: false })));
@@ -257,11 +273,11 @@ export function StudioCanvas({
         >
           <Background variant={BackgroundVariant.Dots} gap={16} />
           <CanvasNavigation />
-          <CanvasToolbar onAddNode={openPaletteAtCenter} {...history} />
-          <NodePalette at={insertAt} onClose={() => setInsertAt(null)} />
+          <Toolbar onAddNode={openPaletteAtCenter} {...history} />
+          <Palette at={insertAt} onClose={closePalette} />
           <ConnectionFeedback />
         </ReactFlow>
-        <NodeDrawer node={editing} onSave={saveConfig} onClose={closeDrawer} />
+        <Drawer node={editing} onSave={saveConfig} onClose={closeDrawer} />
       </div>
     </StatusProvider>
   );

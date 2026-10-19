@@ -1,4 +1,4 @@
-import { act } from "@testing-library/react";
+import { act, createEvent, fireEvent } from "@testing-library/react";
 import { type ReactFlowInstance, ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import type { ReactElement } from "react";
 import { vi } from "vitest";
@@ -46,4 +46,20 @@ export function renderFlowInstance(ui: ReactElement) {
     </ReactFlowProvider>,
   );
   return { ...result, flow };
+}
+
+/**
+ * Mouse de verdade para o d3-drag do React Flow no jsdom: o evento leva `view` (o user-event manda
+ * null e o d3 quebra; o jsdom recusa `view` no construtor) e todo retângulo vale o canvas inteiro
+ * (no 0 × 0 do jsdom o mouse estaria sempre na borda e o auto-pan moveria o nó sozinho). O primeiro
+ * movimento só cruza o limiar de 1 px e não move; comece longe da borda de 40 px.
+ */
+export function mouseOn(element: Element) {
+  const pane = DOMRectReadOnly.fromRect(FLOW_LAYOUT.pane) as DOMRect;
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(pane);
+  return (type: "mouseDown" | "mouseMove" | "mouseUp", x: number, y: number) => {
+    const event = createEvent[type](element, { clientX: x, clientY: y });
+    Object.defineProperty(event, "view", { value: window });
+    fireEvent(element, event);
+  };
 }

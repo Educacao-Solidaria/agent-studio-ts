@@ -1,4 +1,5 @@
-import type { NodeTypes } from "@xyflow/react";
+import type { NodeProps, NodeTypes } from "@xyflow/react";
+import { memo } from "react";
 import { DefaultNode } from "./default-node.tsx";
 import type { NodeType } from "./domain.ts";
 import { NODE_TYPES } from "./flow.ts";
@@ -10,9 +11,24 @@ export type NodeModule = { default?: NodeTypes[string] };
  * Registro de nós visuais. Um tipo do contrato ganha componente próprio criando
  * `canvas/nodes/<tipo>.tsx` (ex.: `nodes/gateway.tsx`) com `export default` do componente,
  * tipado com `NodeProps<StudioFlowNode<GatewayNodeConfig, "gateway">>` — sem editar este
- * arquivo. Tipo sem arquivo usa o DefaultNode. `<tipo>.test.tsx` e `<tipo>.stories.tsx` ao
+ * arquivo. Tipo sem arquivo usa o DefaultNode. Todo nó entra com `memo` (`sameNodeProps`). `<tipo>.test.tsx` e `<tipo>.stories.tsx` ao
  * lado são ignorados; outro `.tsx` auxiliar vai para subpasta (`nodes/gateway/…`): o glob é raso.
  */
+const MOVING: ReadonlySet<string> = new Set(["positionAbsoluteX", "positionAbsoluteY"]);
+
+/**
+ * Comparação do memo de todo nó do registro: tudo menos a posição. No arraste o React Flow troca
+ * `positionAbsoluteX/Y` a cada quadro e move o nó por fora (transform) — o desenho não muda, então
+ * não renderiza. Nó visual que precise da posição lê com `useInternalNode(id)`.
+ */
+export function sameNodeProps(prev: NodeProps, next: NodeProps) {
+  const keys = Object.keys(next) as Array<keyof NodeProps>;
+  return (
+    keys.length === Object.keys(prev).length &&
+    keys.every((key) => MOVING.has(key) || Object.is(prev[key], next[key]))
+  );
+}
+
 export function buildNodeTypes(modules: Record<string, NodeModule>): NodeTypes {
   const custom = new Map<string, NodeTypes[string]>();
   for (const [path, module] of Object.entries(modules)) {
@@ -26,7 +42,8 @@ export function buildNodeTypes(modules: Record<string, NodeModule>): NodeTypes {
     }
     custom.set(type, module.default);
   }
-  return Object.fromEntries(NODE_TYPES.map((type) => [type, custom.get(type) ?? DefaultNode]));
+  const component = (type: NodeType) => memo(custom.get(type) ?? DefaultNode, sameNodeProps);
+  return Object.fromEntries(NODE_TYPES.map((type) => [type, component(type)]));
 }
 
 export const nodeTypes = buildNodeTypes(

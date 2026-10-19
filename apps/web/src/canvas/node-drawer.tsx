@@ -82,6 +82,14 @@ export type NodeDrawerProps = {
   onClose: (id: string) => void;
 };
 
+/** Comparação do memo do painel: ele só lê id, tipo e config do nó; posição e medida não contam. */
+export const sameDrawerProps = (a: NodeDrawerProps, b: NodeDrawerProps) =>
+  a.onSave === b.onSave &&
+  a.onClose === b.onClose &&
+  a.node?.id === b.node?.id &&
+  a.node?.type === b.node?.type &&
+  a.node?.data.config === b.node?.data.config;
+
 /**
  * Painel lateral de propriedades do nó selecionado, com o formulário do tipo dele.
  * Rascunho por nó: trocar de nó, fechar o painel ou clicar no fundo não perde o que foi
