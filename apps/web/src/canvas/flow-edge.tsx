@@ -1,16 +1,7 @@
 import { BaseEdge, type EdgeProps, getBezierPath, useNodesData } from "@xyflow/react";
 import { type CSSProperties, useId } from "react";
 import type { NodeExecutionState } from "./domain.ts";
-import type { StudioFlowEdge, StudioFlowNode } from "./flow.ts";
-
-/** Cor de cada estado de execução nas pontas do gradiente (tokens do tema). */
-const STATE_COLORS: Record<NodeExecutionState, string> = {
-  idle: "var(--color-muted-foreground)",
-  queued: "var(--color-warning)",
-  running: "var(--color-primary)",
-  success: "var(--color-success)",
-  error: "var(--color-danger)",
-};
+import { STATE_COLORS, type StudioFlowEdge, type StudioFlowNode } from "./flow.ts";
 
 /**
  * Há dado em trânsito quando o destino está executando e a origem já entregou a saída

@@ -1,9 +1,8 @@
 import { screen } from "@testing-library/react";
-import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { act } from "react";
 import { describe, expect, it } from "vitest";
 import css from "../styles/globals.css?raw";
-import { renderFlow } from "../test/flow.tsx";
+import { renderFlow, renderFlowInstance } from "../test/flow.tsx";
 import type { NodeExecutionState, StudioEdge, StudioNode } from "./domain.ts";
 import { isTransmitting } from "./flow-edge.tsx";
 import { StudioCanvas } from "./studio-canvas.tsx";
@@ -71,19 +70,9 @@ describe("FlowEdge", () => {
   });
 
   it("acompanha ao vivo o estado dos nós", () => {
-    let flow: ReturnType<typeof useReactFlow> | undefined;
-    function Probe() {
-      flow = useReactFlow();
-      return null;
-    }
-    renderFlow(
-      <ReactFlowProvider>
-        <StudioCanvas initialNodes={nodes} initialEdges={edges} />
-        <Probe />
-      </ReactFlowProvider>,
-    );
+    const { flow } = renderFlowInstance(<StudioCanvas initialNodes={nodes} initialEdges={edges} />);
 
-    act(() => flow?.updateNodeData("c", { state: "running" }));
+    act(() => flow.current.updateNodeData("c", { state: "running" }));
     expect(isActive("b-c")).toBe(true);
     expect(stops("b-c")).toEqual(["var(--color-primary)", "var(--color-primary)"]);
   });

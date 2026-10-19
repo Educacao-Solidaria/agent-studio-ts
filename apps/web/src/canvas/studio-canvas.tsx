@@ -4,14 +4,23 @@ import {
   Background,
   BackgroundVariant,
   type Connection,
+  Controls,
+  MiniMap,
   ReactFlow,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "@xyflow/react";
 import { useCallback, useState } from "react";
 import { cn } from "../lib/cn.ts";
 import type { StudioEdge, StudioNode } from "./domain.ts";
-import { edgeAriaLabel, toFlowEdge, toFlowNode } from "./flow.ts";
+import {
+  edgeAriaLabel,
+  STATE_COLORS,
+  type StudioFlowNode,
+  toFlowEdge,
+  toFlowNode,
+} from "./flow.ts";
 import { FlowEdge } from "./flow-edge.tsx";
 import { nodeTypes } from "./node-types.ts";
 
@@ -39,7 +48,34 @@ const ARIA_LABELS: Partial<AriaLabelConfig> = {
   "edge.a11yDescription.default":
     "Enter ou Espaço seleciona a conexão. Delete remove e Esc cancela a seleção.",
   "handle.ariaLabel": "Porta de conexão",
+  "controls.ariaLabel": "Controles de zoom",
+  "controls.zoomIn.ariaLabel": "Aproximar",
+  "controls.zoomOut.ariaLabel": "Afastar",
+  "controls.fitView.ariaLabel": "Enquadrar o fluxo",
+  "minimap.ariaLabel": "Mini-mapa do fluxo",
 };
+
+const miniMapColor = (node: StudioFlowNode) => STATE_COLORS[node.data.state];
+
+/**
+ * Visão aérea e zoom. Mini-mapa: arrastar move a vista, a roda aproxima e um clique centraliza
+ * ali mantendo o zoom (sem `zoom`, o setCenter do React Flow pularia para o máximo). Os
+ * controles reenquadram como a abertura; o botão de travar do React Flow fica de fora.
+ */
+function CanvasNavigation() {
+  const { setCenter, getZoom } = useReactFlow();
+  return (
+    <>
+      <MiniMap
+        pannable
+        zoomable
+        nodeColor={miniMapColor}
+        onClick={(_, { x, y }) => void setCenter(x, y, { zoom: getZoom() })}
+      />
+      <Controls showInteractive={false} fitViewOptions={FIT_VIEW} />
+    </>
+  );
+}
 
 export type StudioCanvasProps = {
   /** Fluxo inicial; depois da montagem o estado é do canvas (mudar a prop não recarrega). */
@@ -92,6 +128,7 @@ export function StudioCanvas({
         ariaLabelConfig={ARIA_LABELS}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} />
+        <CanvasNavigation />
       </ReactFlow>
     </div>
   );

@@ -1,8 +1,7 @@
 import { screen, within } from "@testing-library/react";
-import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { act } from "react";
 import { describe, expect, it } from "vitest";
-import { FLOW_LAYOUT, renderFlow } from "../test/flow.tsx";
+import { FLOW_LAYOUT, renderFlow, renderFlowInstance } from "../test/flow.tsx";
 import type { StudioEdge, StudioNode } from "./domain.ts";
 import { MAX_ZOOM, MIN_ZOOM, StudioCanvas } from "./studio-canvas.tsx";
 
@@ -68,22 +67,12 @@ describe("StudioCanvas", () => {
   });
 
   it("limita o zoom entre MIN_ZOOM e MAX_ZOOM", () => {
-    let flow: ReturnType<typeof useReactFlow> | undefined;
-    function Probe() {
-      flow = useReactFlow();
-      return null;
-    }
-    renderFlow(
-      <ReactFlowProvider>
-        <StudioCanvas initialNodes={nodes} />
-        <Probe />
-      </ReactFlowProvider>,
-    );
+    const { flow } = renderFlowInstance(<StudioCanvas initialNodes={nodes} />);
 
-    act(() => void flow?.zoomTo(50));
-    expect(flow?.getZoom()).toBe(MAX_ZOOM);
-    act(() => void flow?.zoomTo(0.001));
-    expect(flow?.getZoom()).toBe(MIN_ZOOM);
+    act(() => void flow.current.zoomTo(50));
+    expect(flow.current.getZoom()).toBe(MAX_ZOOM);
+    act(() => void flow.current.zoomTo(0.001));
+    expect(flow.current.getZoom()).toBe(MIN_ZOOM);
   });
 
   it("descreve o teclado em pt-BR, seleciona com Enter e remove nó e arestas com Delete", async () => {

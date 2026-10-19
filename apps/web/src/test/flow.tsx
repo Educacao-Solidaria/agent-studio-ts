@@ -1,4 +1,5 @@
 import { act } from "@testing-library/react";
+import { type ReactFlowInstance, ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import type { ReactElement } from "react";
 import { vi } from "vitest";
 import { triggerAllResizes } from "./browser-mocks.ts";
@@ -29,4 +30,20 @@ export function renderFlow(ui: ReactElement) {
   const result = renderWithProviders(ui);
   act(() => triggerAllResizes());
   return result;
+}
+
+/** renderFlow com a instância do React Flow em `flow.current`, para comandar e ler a vista. */
+export function renderFlowInstance(ui: ReactElement) {
+  const flow = {} as { current: ReactFlowInstance };
+  function Probe() {
+    flow.current = useReactFlow();
+    return null;
+  }
+  const result = renderFlow(
+    <ReactFlowProvider>
+      {ui}
+      <Probe />
+    </ReactFlowProvider>,
+  );
+  return { ...result, flow };
 }

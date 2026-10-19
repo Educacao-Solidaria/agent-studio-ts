@@ -1,5 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { NodeType, StudioEdge, StudioNode } from "./domain.ts";
+import type { NodeExecutionState, NodeType, StudioEdge, StudioNode } from "./domain.ts";
 
 /** Nome de cada tipo de nó na interface; o `satisfies` obriga a cobrir todo NodeType do contrato. */
 export const NODE_LABELS = {
@@ -13,6 +13,15 @@ export const NODE_LABELS = {
 
 /** Todos os tipos de nó do contrato, em runtime. */
 export const NODE_TYPES = Object.keys(NODE_LABELS) as NodeType[];
+
+/** Cor de cada estado de execução (tokens do tema): pontas da aresta e nós do mini-mapa. */
+export const STATE_COLORS: Record<NodeExecutionState, string> = {
+  idle: "var(--color-muted-foreground)",
+  queued: "var(--color-warning)",
+  running: "var(--color-primary)",
+  success: "var(--color-success)",
+  error: "var(--color-danger)",
+};
 
 /**
  * O que cada nó visual recebe em `data`: o StudioNode sem id, tipo e posição, que o
