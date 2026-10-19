@@ -16,6 +16,7 @@ import {
 } from "@xyflow/react";
 import { useCallback, useRef, useState } from "react";
 import { cn } from "../lib/cn.ts";
+import { CanvasToolbar } from "./canvas-toolbar.tsx";
 import { refusalMessage, refuseConnection } from "./connection-rules.ts";
 import type { StudioEdge, StudioNode } from "./domain.ts";
 import {
@@ -28,6 +29,8 @@ import {
 import { FlowEdge } from "./flow-edge.tsx";
 import { NodeDrawer } from "./node-drawer.tsx";
 import { nodeTypes } from "./node-types.ts";
+import { useShortcuts } from "./shortcuts.ts";
+import { useFlowHistory } from "./use-flow-history.ts";
 
 /** Zoom de 10% (um fluxo grande inteiro na tela) a 200% (ler o detalhe de um nó). */
 export const MIN_ZOOM = 0.1;
@@ -142,6 +145,8 @@ export function StudioCanvas({
   const [startEdges] = useState(() => initialEdges.map(toFlowEdge));
   const [nodes, setNodes, onNodesChange] = useNodesState(startNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(startEdges);
+  const history = useFlowHistory(nodes, edges, setNodes, setEdges);
+  useShortcuts({ undo: history.undo, redo: history.redo });
   const onConnect = useCallback(
     (connection: Connection) =>
       setEdges((current) =>
@@ -196,6 +201,7 @@ export function StudioCanvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={16} />
         <CanvasNavigation />
+        <CanvasToolbar {...history} />
         <ConnectionFeedback />
       </ReactFlow>
       <NodeDrawer node={editing} onSave={saveConfig} onClose={closeDrawer} />
