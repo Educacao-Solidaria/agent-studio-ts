@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { act } from "react";
 import { describe, expect, it } from "vitest";
 import { FLOW_LAYOUT, renderFlowInstance } from "../test/flow.tsx";
@@ -64,7 +64,8 @@ describe("navegação do canvas", () => {
 
     // Sem nó mudando, o React Flow aplica o fitView no próximo requestAnimationFrame.
     await waitFor(() => expect(flow.current.getViewport()).toEqual(opening));
-    expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+    const controls = within(screen.getByLabelText("Controles de zoom"));
+    expect(controls.getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
       "Aproximar",
       "Afastar",
       "Enquadrar o fluxo",
