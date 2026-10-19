@@ -11,6 +11,7 @@ import {
   ReactFlow,
   useConnection,
   useEdgesState,
+  useKeyPress,
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
@@ -29,7 +30,8 @@ import {
 import { FlowEdge } from "./flow-edge.tsx";
 import { NodeDrawer } from "./node-drawer.tsx";
 import { nodeTypes } from "./node-types.ts";
-import { useShortcuts } from "./shortcuts.ts";
+import { duplicateSelection, selectAll } from "./selection.ts";
+import { keyHint, SHORTCUTS, useShortcuts } from "./shortcuts.ts";
 import { useFlowHistory } from "./use-flow-history.ts";
 
 /** Zoom de 10% (um fluxo grande inteiro na tela) a 200% (ler o detalhe de um nó). */
@@ -43,15 +45,15 @@ const FIT_VIEW = { padding: 0.2, maxZoom: 1 };
 /** Toda aresta, inclusive a criada ao conectar portas, é desenhada pela FlowEdge. */
 const EDGE_TYPES = { flow: FlowEdge };
 const DEFAULT_EDGE = { type: "flow" };
-/** O padrão do React Flow é só Backspace; a descrição acessível promete Delete também. */
-const DELETE_KEYS = ["Backspace", "Delete"];
+/** Apagar e mover a vista são do React Flow, com as teclas do mapa de atalhos. */
+const DELETE_KEYS = [...SHORTCUTS.remove.keys];
+const PAN_KEY = SHORTCUTS.pan.keys[0];
 /**
  * Textos de acessibilidade em pt-BR (o padrão é inglês). Com o teclado ligado o React Flow lê
  * `keyboardDisabled` (o nome é invertido na biblioteca); `default` só vale com ele desligado.
  */
 const ARIA_LABELS: Partial<AriaLabelConfig> = {
-  "node.a11yDescription.keyboardDisabled":
-    "Enter ou Espaço seleciona o nó; depois, as setas o movem. Delete remove e Esc cancela a seleção.",
+  "node.a11yDescription.keyboardDisabled": `Enter ou Espaço seleciona o nó; depois, as setas o movem. Delete remove, ${keyHint("duplicate")} duplica, ${keyHint("undo")} desfaz e Esc cancela a seleção.`,
   "node.a11yDescription.ariaLiveMessage": ({ x, y }) => `Nó movido para x ${x}, y ${y}.`,
   "edge.a11yDescription.default":
     "Enter ou Espaço seleciona a conexão. Delete remove e Esc cancela a seleção.",
@@ -146,7 +148,21 @@ export function StudioCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState(startNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(startEdges);
   const history = useFlowHistory(nodes, edges, setNodes, setEdges);
-  useShortcuts({ undo: history.undo, redo: history.redo });
+  useShortcuts({
+    undo: history.undo,
+    redo: history.redo,
+    selectAll: () => {
+      setNodes(selectAll);
+      setEdges(selectAll);
+    },
+    duplicate: () => {
+      const next = duplicateSelection(nodes, edges);
+      setNodes(next.nodes);
+      setEdges(next.edges);
+    },
+  });
+  // Espaço segurado: arrastar move a vista mesmo sobre um nó (nó arrastável é `nopan`).
+  const panning = useKeyPress(PAN_KEY);
   const onConnect = useCallback(
     (connection: Connection) =>
       setEdges((current) =>
@@ -197,6 +213,8 @@ export function StudioCanvas({
         fitView
         fitViewOptions={FIT_VIEW}
         deleteKeyCode={DELETE_KEYS}
+        panActivationKeyCode={PAN_KEY}
+        nodesDraggable={!panning}
         ariaLabelConfig={ARIA_LABELS}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} />

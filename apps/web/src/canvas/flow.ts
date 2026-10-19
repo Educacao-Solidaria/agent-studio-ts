@@ -40,6 +40,13 @@ export type StudioFlowNode<TConfig = StudioNode["data"], TType extends NodeType 
   TType
 >;
 
+/** Id novo e legível para um nó do tipo: o próprio tipo, se livre; senão `rag-2`, `rag-3`… */
+export function nextNodeId(type: NodeType, taken: ReadonlySet<string>) {
+  let id: string = type;
+  for (let n = 2; taken.has(id); n++) id = `${type}-${n}`;
+  return id;
+}
+
 /** StudioNode (contrato de domínio) → nó do React Flow. */
 export function toFlowNode({ id, type, position, data, ...execution }: StudioNode): StudioFlowNode {
   return { id, type, position, data: { ...execution, config: data } };
