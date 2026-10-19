@@ -98,7 +98,8 @@ describe("render no arraste", () => {
     expect(screen.getByRole("complementary", { name: "Prompt" })).toBeDefined();
     const still = ["node:a", "node:b", "node:c", "edge:b-c", "palette", "drawer"];
     expect(still.map(during)).toEqual(still.map(() => 0));
-    // A barra renderiza uma vez, quando o arraste começa (o Desfazer fica inativo nele).
+    // A barra renderiza uma vez, quando o arraste começa: os comandos de desfazer/refazer trocam
+    // (no meio do arraste eles não fazem nada) e ficam os mesmos até o fim.
     expect(during("toolbar")).toBe(1);
     // Uma atualização do store por quadro: a dos nós (o isValidConnection não muda mais junto).
     expect(during("store")).toBe(FRAMES);

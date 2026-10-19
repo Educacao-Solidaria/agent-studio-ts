@@ -19,7 +19,7 @@ import {
   useStore,
   type XYPosition,
 } from "@xyflow/react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../lib/cn.ts";
 import { CanvasToolbar } from "./canvas-toolbar.tsx";
 import { refusalMessage, refuseConnection } from "./connection-rules.ts";
@@ -207,9 +207,10 @@ export function StudioCanvas({
   );
   // Recusa no arraste: o React Flow nem chama o onConnect, e a linha e a porta ficam vermelhas.
   // O grafo vem por ref: uma função nova a cada quadro de arraste seria mais uma atualização do
-  // store do React Flow (e mais uma rodada de todos os seletores dele) por quadro.
+  // store do React Flow (e mais uma rodada de todos os seletores dele) por quadro. Layout effect:
+  // a ref já tem o grafo do commit antes de qualquer evento seguinte consultar a função.
   const graph = useRef({ nodes, edges });
-  useEffect(() => {
+  useLayoutEffect(() => {
     graph.current = { nodes, edges };
   });
   const isValidConnection = useCallback(
