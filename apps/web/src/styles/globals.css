@@ -180,13 +180,14 @@
   }
 }
 
-/* Pulso da aresta ativa: o ponto anda pelo caminho da própria aresta (`--flow-pulse-path`, que a
- * FlowEdge preenche). Sem animação (prefers-reduced-motion) fica parado no meio dela. */
+/* Pulso da aresta ativa: a seta anda pelo caminho da própria aresta (`--flow-pulse-path`, que a
+ * FlowEdge preenche), girando com ele para apontar o destino. Sem animação (prefers-reduced-motion)
+ * fica parada no meio dela, ainda apontando o sentido do dado. */
 @layer components {
   .flow-pulse {
     offset-path: var(--flow-pulse-path);
     offset-distance: 50%;
-    offset-rotate: 0deg;
+    offset-rotate: auto;
     stroke-width: 1.5px;
   }
 }
@@ -221,7 +222,8 @@
   --animate-pop-out: pop-out 100ms ease-in;
   /* Fluxo ativo na aresta: um período do tracejado (4 + 12) andando da origem ao destino. */
   --animate-flow-dash: flow-dash 800ms linear infinite;
-  /* Pulso: o ponto vai da origem (0%) ao destino (100%) do caminho e recomeça. */
+  /* Pulso: a seta vai da origem (0%) ao destino (100%) do caminho e recomeça (a FlowEdge troca a
+   * duração pela do comprimento da aresta). */
   --animate-flow-pulse: flow-pulse 1200ms linear infinite;
 
   @keyframes flow-dash {

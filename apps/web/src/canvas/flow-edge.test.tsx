@@ -5,7 +5,7 @@ import { NodeStateMachine } from "../../../../src/state/stateMachine.ts";
 import css from "../styles/globals.css?raw";
 import { renderFlow, renderFlowInstance } from "../test/flow.tsx";
 import type { NodeExecutionState, StudioEdge, StudioNode } from "./domain.ts";
-import { isTransmitting } from "./flow-edge.tsx";
+import { isTransmitting, pulseDuration } from "./flow-edge.tsx";
 import { StudioCanvas } from "./studio-canvas.tsx";
 
 const node = (id: string, x: number, state: NodeExecutionState): StudioNode => ({
@@ -39,6 +39,16 @@ describe("isTransmitting", () => {
     ]);
     expect(isTransmitting(undefined, "running")).toBe(false); // nó sem estado (fora do canvas)
     expect(isTransmitting("success", undefined)).toBe(false);
+  });
+});
+
+describe("pulseDuration", () => {
+  it("velocidade constante: dobra com a aresta, entre 0,6 s e 3 s, e NaN não vaza", () => {
+    expect(pulseDuration(0, 0, 240, 0)).toBe(1000);
+    expect(pulseDuration(0, 0, 288, 384)).toBe(2000); // corda de 480 px
+    expect(pulseDuration(10, 10, 10, 10)).toBe(600); // aresta de comprimento 0
+    expect(pulseDuration(0, 0, 10_000, 0)).toBe(3000);
+    expect(pulseDuration(Number.NaN, 0, 100, 0)).toBe(1200);
   });
 });
 
@@ -97,6 +107,7 @@ describe("FlowEdge", () => {
     expect(d).toMatch(/^M/);
     expect(pulse("a-b")?.style.getPropertyValue("--flow-pulse-path")).toBe(`path("${d}")`);
     expect(pulse("a-b")?.classList).toContain("animate-flow-pulse");
+    expect(pulse("a-b")?.style.animationDuration).toMatch(/^\d+ms$/);
     expect(pulse("b-c")).toBeNull();
   });
 
@@ -116,7 +127,7 @@ describe("FlowEdge", () => {
     expect([pulse("a-b"), pulse("b-c")]).toEqual([null, null]);
   });
 
-  it("para a animação com prefers-reduced-motion; o pulso fica parado no meio", () => {
+  it("para a animação com prefers-reduced-motion; o pulso fica parado no meio, com o sentido", () => {
     const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
     expect(reduced).toMatch(/--animate-flow-dash: none;/);
     expect(reduced).toMatch(/--animate-flow-pulse: none;/);
@@ -127,6 +138,7 @@ describe("FlowEdge", () => {
       css.indexOf("}", css.indexOf(".flow-pulse {")),
     );
     expect(rule).toMatch(/offset-path: var\(--flow-pulse-path\);/);
-    expect(rule).toMatch(/offset-distance: 50%;/); // sem animação, o ponto fica no meio
+    expect(rule).toMatch(/offset-distance: 50%;/); // sem animação, a seta fica no meio
+    expect(rule).toMatch(/offset-rotate: auto;/); // e aponta o destino, pelo caminho
   });
 });
