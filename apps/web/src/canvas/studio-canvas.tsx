@@ -5,14 +5,18 @@ import {
   BackgroundVariant,
   type Connection,
   Controls,
+  type Edge,
   MiniMap,
+  Panel,
   ReactFlow,
+  useConnection,
   useEdgesState,
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
 import { useCallback, useState } from "react";
 import { cn } from "../lib/cn.ts";
+import { refusalMessage, refuseConnection } from "./connection-rules.ts";
 import type { StudioEdge, StudioNode } from "./domain.ts";
 import {
   edgeAriaLabel,
@@ -47,7 +51,6 @@ const ARIA_LABELS: Partial<AriaLabelConfig> = {
   "node.a11yDescription.ariaLiveMessage": ({ x, y }) => `Nó movido para x ${x}, y ${y}.`,
   "edge.a11yDescription.default":
     "Enter ou Espaço seleciona a conexão. Delete remove e Esc cancela a seleção.",
-  "handle.ariaLabel": "Porta de conexão",
   "controls.ariaLabel": "Controles de zoom",
   "controls.zoomIn.ariaLabel": "Aproximar",
   "controls.zoomOut.ariaLabel": "Afastar",
@@ -85,6 +88,42 @@ export type StudioCanvasProps = {
 };
 
 /**
+ * Aviso do porquê de uma ligação recusada, enquanto o arraste está sobre a porta de destino.
+ * A região `status` fica sempre montada (vazia some na tela) para o leitor de tela anunciar.
+ */
+function ConnectionFeedback() {
+  const connection = useConnection();
+  const { getNodes, getEdges } = useReactFlow();
+  let message = "";
+  if (connection.inProgress && connection.isValid === false && connection.toHandle) {
+    const { fromHandle, toHandle } = connection;
+    if (fromHandle.type === toHandle.type) {
+      message = "Ligue uma saída (direita) a uma entrada (esquerda).";
+    } else {
+      const [out, into] =
+        fromHandle.type === "source" ? [fromHandle, toHandle] : [toHandle, fromHandle];
+      const link = {
+        source: out.nodeId,
+        sourceHandle: out.id,
+        target: into.nodeId,
+        targetHandle: into.id,
+      };
+      const refusal = refuseConnection(link, { nodes: getNodes(), edges: getEdges() });
+      message = refusal ? refusalMessage(refusal) : "";
+    }
+  }
+  return (
+    <Panel
+      position="top-center"
+      role="status"
+      className="rounded-md border border-danger bg-surface px-3 py-1.5 text-danger text-sm shadow-sm empty:hidden"
+    >
+      {message}
+    </Panel>
+  );
+}
+
+/**
  * Canvas infinito do estúdio: pan sem limite (arrastar o fundo ou Espaço + arrastar), zoom
  * por roda, pinça ou duplo clique entre MIN_ZOOM e MAX_ZOOM, e enquadramento inicial de
  * todos os nós. O estado (posições, medidas, seleção, arestas) fica no React Flow.
@@ -108,6 +147,11 @@ export function StudioCanvas({
       ),
     [setEdges],
   );
+  // Recusa no arraste: o React Flow nem chama o onConnect, e a linha e a porta ficam vermelhas.
+  const isValidConnection = useCallback(
+    (link: Edge | Connection) => refuseConnection(link, { nodes, edges }) === null,
+    [nodes, edges],
+  );
 
   return (
     <div className={cn("size-full", className)}>
@@ -120,6 +164,7 @@ export function StudioCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         fitView
@@ -129,6 +174,7 @@ export function StudioCanvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={16} />
         <CanvasNavigation />
+        <ConnectionFeedback />
       </ReactFlow>
     </div>
   );

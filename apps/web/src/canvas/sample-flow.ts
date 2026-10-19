@@ -12,10 +12,19 @@ export const sampleNodes: StudioNode[] = [
   { id: "eval", type: "eval", position: { x: 840, y: 80 }, state: "queued", data: {} },
 ];
 
+/** Portas pelos ids de NODE_PORTS: o RAG entra no contexto do gateway, o cache no prompt. */
+const link = (source: string, sourceHandle: string, target: string, targetHandle: string) => ({
+  id: `${source}-${target}`,
+  source,
+  sourceHandle,
+  target,
+  targetHandle,
+});
+
 export const sampleEdges: StudioEdge[] = [
-  { id: "prompt-cache", source: "prompt", target: "cache" },
-  { id: "prompt-rag", source: "prompt", target: "rag" },
-  { id: "cache-gateway", source: "cache", target: "gateway" },
-  { id: "rag-gateway", source: "rag", target: "gateway" },
-  { id: "gateway-eval", source: "gateway", target: "eval" },
+  link("prompt", "prompt", "cache", "query"),
+  link("prompt", "prompt", "rag", "query"),
+  link("cache", "response", "gateway", "prompt"),
+  link("rag", "context", "gateway", "context"),
+  link("gateway", "completion", "eval", "response"),
 ];
