@@ -1,10 +1,11 @@
 import { screen } from "@testing-library/react";
 import { act } from "react";
 import { describe, expect, it } from "vitest";
+import { NodeStateMachine } from "../../../../src/state/stateMachine.ts";
 import css from "../styles/globals.css?raw";
 import { renderFlow, renderFlowInstance } from "../test/flow.tsx";
 import type { NodeExecutionState, StudioEdge, StudioNode } from "./domain.ts";
-import { isTransmitting } from "./flow-edge.tsx";
+import { isTransmitting, pulseDuration } from "./flow-edge.tsx";
 import { StudioCanvas } from "./studio-canvas.tsx";
 
 const node = (id: string, x: number, state: NodeExecutionState): StudioNode => ({
@@ -24,17 +25,30 @@ const edge = (id: string) => screen.getByTestId(`rf__edge-${id}`);
 const stops = (id: string) =>
   [...edge(id).querySelectorAll("stop")].map((stop) => stop.style.stopColor);
 const isActive = (id: string) => edge(id).querySelector('[data-flow="active"]') !== null;
+const pulse = (id: string) => edge(id).querySelector<SVGElement>('[data-flow="pulse"]');
+
+const STATES: NodeExecutionState[] = ["idle", "queued", "running", "success", "error"];
 
 describe("isTransmitting", () => {
-  it("só há dado em trânsito com o destino executando e a origem com saída", () => {
-    expect(isTransmitting("success", "running")).toBe(true);
-    expect(isTransmitting("running", "running")).toBe(true);
-    for (const source of ["idle", "queued", "error", undefined] as const) {
-      expect(isTransmitting(source, "running")).toBe(false);
-    }
-    for (const target of ["idle", "queued", "success", "error", undefined] as const) {
-      expect(isTransmitting("success", target)).toBe(false);
-    }
+  it("dado em trânsito: destino executando e origem com saída (concluída ou em streaming)", () => {
+    const pairs = STATES.flatMap((source) => STATES.map((target) => [source, target] as const));
+    // As 25 combinações: só estas duas transmitem.
+    expect(pairs.filter(([source, target]) => isTransmitting(source, target))).toEqual([
+      ["running", "running"],
+      ["success", "running"],
+    ]);
+    expect(isTransmitting(undefined, "running")).toBe(false); // nó sem estado (fora do canvas)
+    expect(isTransmitting("success", undefined)).toBe(false);
+  });
+});
+
+describe("pulseDuration", () => {
+  it("velocidade constante: dobra com a aresta, entre 0,6 s e 3 s, e NaN não vaza", () => {
+    expect(pulseDuration(0, 0, 240, 0)).toBe(1000);
+    expect(pulseDuration(0, 0, 288, 384)).toBe(2000); // corda de 480 px
+    expect(pulseDuration(10, 10, 10, 10)).toBe(600); // aresta de comprimento 0
+    expect(pulseDuration(0, 0, 10_000, 0)).toBe(3000);
+    expect(pulseDuration(Number.NaN, 0, 100, 0)).toBe(1200);
   });
 });
 
@@ -86,9 +100,45 @@ describe("FlowEdge", () => {
     expect(edge("b-c").getAttribute("aria-label")).toBe("Conexão de b para c");
   });
 
-  it("para a animação com prefers-reduced-motion", () => {
+  it("o pulso anda pelo caminho da própria aresta, só onde há dado em trânsito", () => {
+    renderFlow(<StudioCanvas initialNodes={nodes} initialEdges={edges} />);
+
+    const d = edge("a-b").querySelector(".react-flow__edge-path")?.getAttribute("d");
+    expect(d).toMatch(/^M/);
+    expect(pulse("a-b")?.style.getPropertyValue("--flow-pulse-path")).toBe(`path("${d}")`);
+    expect(pulse("a-b")?.classList).toContain("animate-flow-pulse");
+    expect(pulse("a-b")?.style.animationDuration).toMatch(/^\d+ms$/);
+    expect(pulse("b-c")).toBeNull();
+  });
+
+  it("pulso ligado e desligado pelo status ao vivo da NodeStateMachine", () => {
+    const machine = new NodeStateMachine();
+    const idle = nodes.map((node) => ({ ...node, state: "idle" as const }));
+    renderFlow(<StudioCanvas initialNodes={idle} initialEdges={edges} execution={machine} />);
+    const step = (id: string, to: NodeExecutionState) => act(() => void machine.transition(id, to));
+
+    step("a", "running");
+    expect(pulse("a-b")).toBeNull(); // a ainda não mandou nada: b está ocioso
+    step("b", "running");
+    expect(pulse("a-b")).not.toBeNull(); // streaming: os dois executando
+    step("a", "success");
+    expect(pulse("a-b")).not.toBeNull(); // a entregou, b consome
+    step("b", "error");
+    expect([pulse("a-b"), pulse("b-c")]).toEqual([null, null]);
+  });
+
+  it("para a animação com prefers-reduced-motion; o pulso fica parado no meio, com o sentido", () => {
     const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
     expect(reduced).toMatch(/--animate-flow-dash: none;/);
+    expect(reduced).toMatch(/--animate-flow-pulse: none;/);
     expect(css).toMatch(/--animate-flow-dash: flow-dash [^;]+;/);
+    expect(css).toMatch(/--animate-flow-pulse: flow-pulse [^;]+;/);
+    const rule = css.slice(
+      css.indexOf(".flow-pulse {"),
+      css.indexOf("}", css.indexOf(".flow-pulse {")),
+    );
+    expect(rule).toMatch(/offset-path: var\(--flow-pulse-path\);/);
+    expect(rule).toMatch(/offset-distance: 50%;/); // sem animação, a seta fica no meio
+    expect(rule).toMatch(/offset-rotate: auto;/); // e aponta o destino, pelo caminho
   });
 });

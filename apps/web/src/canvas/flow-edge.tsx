@@ -6,16 +6,32 @@ import { useLiveStatus } from "./node-status.ts";
 
 /**
  * Há dado em trânsito quando o destino está executando e a origem já entregou a saída
- * (concluída) ou ainda a produz (executando, em streaming).
+ * (concluída) ou ainda a produz (executando, em streaming). Origem executando com o destino na
+ * fila ou ocioso ainda não mandou nada; origem com erro não manda.
  */
 export function isTransmitting(source?: NodeExecutionState, target?: NodeExecutionState) {
   return target === "running" && (source === "success" || source === "running");
 }
 
+/** Velocidade do pulso, em px do fluxo por segundo: aresta longa leva mais tempo, não corre mais. */
+const PULSE_SPEED = 240;
+
+/**
+ * Duração de uma volta do pulso, em ms, entre 0,6 s e 3 s. ponytail: o comprimento vem da corda
+ * entre as pontas (numa curva fechada, até ~1/4 menor que o caminho); medir de verdade pediria
+ * `getTotalLength()` no DOM a cada render da aresta.
+ */
+export function pulseDuration(sourceX: number, sourceY: number, targetX: number, targetY: number) {
+  const ms = (Math.hypot(targetX - sourceX, targetY - sourceY) / PULSE_SPEED) * 1000;
+  return Number.isFinite(ms) ? Math.min(3000, Math.max(600, Math.round(ms))) : 1200;
+}
+
 /**
  * Aresta do estúdio: gradiente da cor do estado da origem para a do destino, atualizado ao
- * vivo, e, com fluxo ativo, linha mais grossa com traços correndo no sentido do dado. Com
- * prefers-reduced-motion os traços ficam parados: o "ativo" continua visível, sem movimento.
+ * vivo, e, com fluxo ativo, linha mais grossa com traços correndo no sentido do dado e um pulso
+ * (uma seta) andando da origem ao destino em velocidade constante. Com prefers-reduced-motion os
+ * traços param e a seta fica no meio da aresta, apontando para o destino: o "ativo" e o sentido
+ * continuam visíveis, sem movimento.
  */
 export function FlowEdge(props: EdgeProps<StudioFlowEdge>) {
   const { source, target, data, sourceX, sourceY, targetX, targetY } = props;
@@ -57,11 +73,25 @@ export function FlowEdge(props: EdgeProps<StudioFlowEdge>) {
         }
       />
       {active && (
-        <path
-          d={path}
-          data-flow="active"
-          className="pointer-events-none animate-flow-dash fill-none stroke-2 stroke-surface [stroke-dasharray:4_12]"
-        />
+        <>
+          <path
+            d={path}
+            data-flow="active"
+            className="pointer-events-none animate-flow-dash fill-none stroke-2 stroke-surface [stroke-dasharray:4_12]"
+          />
+          {/* Motion Path do CSS no caminho da própria aresta: o navegador anima, sem JS por quadro. */}
+          <path
+            d="M -6 -5 L 6 0 L -6 5 Z"
+            data-flow="pulse"
+            className="flow-pulse pointer-events-none animate-flow-pulse fill-primary stroke-surface"
+            style={
+              {
+                "--flow-pulse-path": `path("${path}")`,
+                animationDuration: `${pulseDuration(sourceX, sourceY, targetX, targetY)}ms`,
+              } as CSSProperties
+            }
+          />
+        </>
       )}
     </>
   );

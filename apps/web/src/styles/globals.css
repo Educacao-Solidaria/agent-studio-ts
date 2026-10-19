@@ -180,6 +180,18 @@
   }
 }
 
+/* Pulso da aresta ativa: a seta anda pelo caminho da própria aresta (`--flow-pulse-path`, que a
+ * FlowEdge preenche), girando com ele para apontar o destino. Sem animação (prefers-reduced-motion)
+ * fica parada no meio dela, ainda apontando o sentido do dado. */
+@layer components {
+  .flow-pulse {
+    offset-path: var(--flow-pulse-path);
+    offset-distance: 50%;
+    offset-rotate: auto;
+    stroke-width: 1.5px;
+  }
+}
+
 /* Ligação em arraste: verde onde o validador aceita, vermelha e tracejada onde recusa. */
 .react-flow__connection.valid .react-flow__connection-path {
   stroke: var(--color-success);
@@ -210,10 +222,21 @@
   --animate-pop-out: pop-out 100ms ease-in;
   /* Fluxo ativo na aresta: um período do tracejado (4 + 12) andando da origem ao destino. */
   --animate-flow-dash: flow-dash 800ms linear infinite;
+  /* Pulso: a seta vai da origem (0%) ao destino (100%) do caminho e recomeça (a FlowEdge troca a
+   * duração pela do comprimento da aresta). */
+  --animate-flow-pulse: flow-pulse 1200ms linear infinite;
 
   @keyframes flow-dash {
     to {
       stroke-dashoffset: -16;
+    }
+  }
+  @keyframes flow-pulse {
+    from {
+      offset-distance: 0%;
+    }
+    to {
+      offset-distance: 100%;
     }
   }
 
@@ -241,8 +264,8 @@
   }
 }
 
-/* Sem animação para quem pediu menos movimento; o Radix desmonta na hora e o tracejado das
- * arestas ativas fica parado. */
+/* Sem animação para quem pediu menos movimento; o Radix desmonta na hora, o tracejado das
+ * arestas ativas fica parado e o pulso fica no meio da aresta. */
 @media (prefers-reduced-motion: reduce) {
   :root {
     --animate-fade-in: none;
@@ -250,5 +273,6 @@
     --animate-pop-in: none;
     --animate-pop-out: none;
     --animate-flow-dash: none;
+    --animate-flow-pulse: none;
   }
 }
