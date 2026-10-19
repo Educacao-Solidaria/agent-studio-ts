@@ -1,4 +1,4 @@
-import { Panel, useReactFlow } from "@xyflow/react";
+import { Panel, useReactFlow, useStoreApi } from "@xyflow/react";
 import { Fragment, useId, useState } from "react";
 import { Icon, type IconName } from "../components/icons.tsx";
 import { Button } from "../components/ui/button.tsx";
@@ -6,6 +6,7 @@ import { popoverClass } from "../components/ui/overlay.ts";
 import { cn } from "../lib/cn.ts";
 import { layoutNodes, loadDagre } from "./auto-layout.ts";
 import { FIT_VIEW, type StudioFlowEdge, type StudioFlowNode } from "./flow.ts";
+import { useStatusStore } from "./node-status.ts";
 import {
   ariaKeys,
   keyHint,
@@ -125,6 +126,46 @@ function OrganizeButton() {
   );
 }
 
+/**
+ * Exportar: baixa o desenho do fluxo como SVG vetorial (nítido em qualquer tamanho), sem os
+ * painéis, o mini-mapa e os controles do canvas, nas cores do tema de agora. O código vem sob
+ * demanda; falha no download dele vira aviso.
+ */
+function ExportButton() {
+  const flow = useReactFlow<StudioFlowNode, StudioFlowEdge>();
+  const store = useStoreApi();
+  const statuses = useStatusStore();
+  const [failed, setFailed] = useState(false);
+  const exportSvg = async () => {
+    try {
+      const { exportFlowSvg } = await import("./export-svg.ts");
+      exportFlowSvg(flow, statuses, store.getState().domNode ?? document.documentElement);
+      setFailed(false);
+    } catch {
+      setFailed(true);
+    }
+  };
+  return (
+    <>
+      <Button
+        variant="secondary"
+        size="icon"
+        className="size-8"
+        aria-label="Exportar SVG"
+        title="Exportar o fluxo como imagem SVG"
+        onClick={exportSvg}
+      >
+        <Icon name="download" />
+      </Button>
+      {failed && (
+        <p role="alert" className="self-center text-danger text-sm">
+          Não foi possível exportar. Tente de novo.
+        </p>
+      )}
+    </>
+  );
+}
+
 export type CanvasToolbarProps = {
   /** Abre a paleta de nós (o nó entra no centro da vista). */
   onAddNode: () => void;
@@ -154,6 +195,7 @@ export function CanvasToolbar({ onAddNode, undo, redo, canUndo, canRedo }: Canva
         <Tool id="undo" icon="undo" onClick={undo} disabled={!canUndo} />
         <Tool id="redo" icon="redo" onClick={redo} disabled={!canRedo} />
         <OrganizeButton />
+        <ExportButton />
         <ShortcutList />
       </fieldset>
     </Panel>
