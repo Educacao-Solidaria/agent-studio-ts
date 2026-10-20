@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatMessage } from "../../../../src/types/domain.ts";
 import { ExportChat, loadChatFile } from "./export-chat.tsx";
 
@@ -11,6 +11,8 @@ const messages: ChatMessage[] = [
 describe("ExportChat", () => {
   const blobs: Blob[] = [];
   const names: string[] = [];
+  // Aquece o import(): o waitFor (1 s) não fica à mercê da transformação num runner lento.
+  beforeAll(() => loadChatFile());
   beforeEach(() => {
     blobs.length = names.length = 0;
     const createObjectURL = vi.fn((blob: Blob) => {
