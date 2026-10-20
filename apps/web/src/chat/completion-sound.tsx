@@ -51,7 +51,6 @@ export function useCompletionSound(longMs = LONG_MS) {
   const audio = useRef<AudioContext | undefined>(undefined);
   // O painel chama `notify` no fim de um envio que começou antes: lê a preferência de agora.
   const on = useRef(enabled);
-  on.current = enabled;
   const unlock = useCallback(() => {
     if (typeof AudioContext === "undefined") return Promise.resolve(undefined);
     audio.current ??= new AudioContext();
@@ -76,6 +75,7 @@ export function useCompletionSound(longMs = LONG_MS) {
   const toggle = () => {
     savePreference(!enabled);
     setEnabled(!enabled);
+    on.current = !enabled;
     // Ligar é o gesto: destrava e toca uma vez, para a pessoa saber como soa.
     if (!enabled) unlock().then((context) => context && playChime(context));
   };
