@@ -16,7 +16,7 @@ export type StreamUsage = Pick<
 export const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
 export type Consumption = TokenMetrics & {
-  /** Sem o uso real do gateway ainda: contado pelo texto. */
+  /** Sem o uso real do gateway ainda (ou só o da entrada): contado pelo texto. */
   estimated: boolean;
   /** Em dólar; indefinido sem preço conhecido. Resposta do cache semântico não chega a cobrar. */
   costUsd?: number;
@@ -31,15 +31,20 @@ export function consumption(input: {
   pricing?: ModelPricing;
 }): Consumption {
   const { usage, pricing } = input;
+  // O contrato deixa o `metadata` vir no começo do stream: com a saída ainda em 0 e texto
+  // chegando, ela segue estimada (e tudo com "≈"); a entrada já é a real.
+  const counted = usage && (usage.completion_tokens > 0 || !input.completion);
   const promptTokens = usage ? usage.prompt_tokens : estimateTokens(input.prompt ?? "");
-  const completionTokens = usage ? usage.completion_tokens : estimateTokens(input.completion ?? "");
+  const completionTokens = counted
+    ? usage.completion_tokens
+    : estimateTokens(input.completion ?? "");
   const totalTokens = promptTokens + completionTokens;
   const priced = pricing && promptTokens * pricing.prompt + completionTokens * pricing.completion;
   return {
     promptTokens,
     completionTokens,
     totalTokens,
-    estimated: !usage,
+    estimated: !counted,
     costUsd: usage?.cached ? 0 : priced,
     contextRatio: pricing?.contextLength ? totalTokens / pricing.contextLength : undefined,
   };

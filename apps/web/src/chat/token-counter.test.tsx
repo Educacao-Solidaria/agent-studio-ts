@@ -34,6 +34,13 @@ describe("consumption", () => {
     expect(now.costUsd).toBeCloseTo(0.0156, 10);
   });
 
+  it("metadata do começo do stream (saída em 0) não vira saída real com texto chegando", () => {
+    const early = { ...USAGE, completion_tokens: 0 };
+    const now = consumption({ usage: early, completion: "b".repeat(40) });
+    expect(now).toMatchObject({ promptTokens: 1200, completionTokens: 10, estimated: true });
+    expect(consumption({ usage: early, completion: "" })).toMatchObject({ estimated: false });
+  });
+
   it("cache não cobra; sem preço ou janela fica indefinido; nada é zero", () => {
     const cached = { ...USAGE, cached: true };
     expect(consumption({ usage: cached, pricing: PRICE }).costUsd).toBe(0);
