@@ -123,9 +123,12 @@ describe("CodeBlock", () => {
   it("texto chegando aos pedaços termina igual ao bloco renderizado de uma vez", async () => {
     const code = `function f(a: number) {\n  return \`\${a}\`; // ok\n}\n`;
     const whole = render(<CodeBlock code={code} lang="typescript" />).container;
-    const stream = render(<CodeBlock code="" lang="typescript" />);
-    await waitFor(() => expect(spans(whole).length).toBeGreaterThan(0));
-    for (let i = 1; i <= code.length; i += 3) {
+    const stream = render(<CodeBlock code="f" lang="typescript" />);
+    // Os dois já com destaque: senão o laço compararia texto puro com texto puro.
+    await waitFor(() =>
+      expect(spans(whole).length * spans(stream.container).length).toBeGreaterThan(0),
+    );
+    for (let i = 2; i <= code.length; i += 3) {
       stream.rerender(<CodeBlock code={code.slice(0, i)} lang="typescript" />);
     }
     stream.rerender(<CodeBlock code={code} lang="typescript" />);
