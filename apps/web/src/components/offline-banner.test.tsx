@@ -108,6 +108,16 @@ it("online no meio de uma checagem não a duplica; depois troca o timer em vez d
   expect(signals).toHaveLength(3); // um timer só, não o velho mais o novo
 });
 
+it("check que lança na hora conta como falha e não trava o serviço", async () => {
+  fakeTimers();
+  const check = (): Promise<boolean> => {
+    throw new Error("sem rede");
+  };
+  render(<OfflineBanner services={[RAG]} check={check} />);
+  await advance(2000);
+  expect(banner()).toBe("Serviço indisponível: RAG. Tentando de novo…");
+});
+
 it("começa offline se o navegador já está offline", () => {
   Object.defineProperty(navigator, "onLine", { configurable: true, get: () => false });
   render(<OfflineBanner services={[]} check={fake().check} />);

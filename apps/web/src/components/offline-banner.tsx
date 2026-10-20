@@ -3,7 +3,7 @@ import { backoffDelay } from "../chat/sse-reader.ts";
 import { cn } from "../lib/cn.ts";
 import { Icon } from "./icons.tsx";
 
-/** Um serviço do backend e a rota de saúde dele (`/healthz` do gateway e do brain-router). */
+/** Um serviço do backend e a rota de saúde dele (`/healthz`); o nome (único na lista) é o que aparece. */
 export type Service = { name: string; url: string };
 export type Check = (url: string, signal: AbortSignal) => Promise<boolean>;
 export type ConnectivityOptions = {
@@ -68,7 +68,9 @@ export function useConnectivity(services: readonly Service[], options: Connectiv
       });
     async function probe({ name, url }: Service) {
       busy.add(name);
-      const ok = await check.current(url, stop.signal).catch(() => false);
+      // `check` que lança antes de devolver a promessa também é falha (e não prende o serviço em `busy`).
+      const run = new Promise<boolean>((done) => done(check.current(url, stop.signal)));
+      const ok = await run.catch(() => false);
       busy.delete(name);
       if (stop.signal.aborted) return;
       const failed = ok ? 0 : (failures.get(name) ?? 0) + 1;
