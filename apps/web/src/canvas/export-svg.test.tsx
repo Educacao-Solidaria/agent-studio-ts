@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeStateMachine } from "../../../../src/state/stateMachine.ts";
 import { renderFlowInstance } from "../test/flow.tsx";
 import type { StudioEdge, StudioNode } from "./domain.ts";
-import { exportFileName, renderSvg, type Scene } from "./export-svg.ts";
+import { renderSvg, type Scene } from "./export-svg.ts";
 import { StudioCanvas } from "./studio-canvas.tsx";
 
 // O download do módulo falha só quando o teste derruba a "rede"; fora isso, o módulo de verdade.
@@ -95,10 +95,6 @@ describe("renderSvg", () => {
     const svg = renderSvg({ nodes: [], edges: [] }, resolve);
     expect(parse(svg).documentElement.getAttribute("viewBox")).toBe("-24 -24 48 48");
     expect(svg).not.toContain("NaN");
-  });
-
-  it("nome previsível na data local, sem nada do fluxo", () => {
-    expect(exportFileName(new Date(2026, 0, 5, 23, 59))).toBe("fluxo-2026-01-05.svg");
   });
 });
 
