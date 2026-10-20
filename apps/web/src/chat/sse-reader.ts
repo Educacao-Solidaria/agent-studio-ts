@@ -43,7 +43,7 @@ export class SSEError extends Error {
   }
 }
 
-/** Mensagem crua, antes de validar o payload. `event` "" = bloco sem `event:`; `id` persiste. */
+/** Mensagem crua, antes de validar o payload. `event`/`id` "" = bloco sem `event:`/`id:`. */
 export type SSEMessage = { event: string; data: string; id: string };
 
 /**
@@ -59,15 +59,19 @@ export function createSSEParser({ lastEventId = "", maxEventLength = 1 << 20 } =
   let event = "";
   let data = "";
   let idBuffer = lastEventId;
+  let blockId = "";
   const tooLarge = () => new SSEError("event_too_large", `evento SSE acima de ${maxEventLength}`);
 
   function line(text: string): SSEMessage | undefined {
     if (text.length > maxEventLength) throw tooLarge();
     if (text === "") {
       state.lastEventId = idBuffer;
-      const message = data && { event, data: data.slice(0, -1), id: idBuffer };
+      // O evento leva o id do próprio bloco, como o `parseSSEBlock` da raiz; o último id recebido
+      // (que persiste entre eventos, como no EventSource) fica em `state` para a reconexão.
+      const message = data && { event, data: data.slice(0, -1), id: blockId };
       event = "";
       data = "";
+      blockId = "";
       return message || undefined;
     }
     if (text.startsWith(":")) return;
@@ -79,8 +83,10 @@ export function createSSEParser({ lastEventId = "", maxEventLength = 1 << 20 } =
     else if (field === "data") {
       data += `${value}\n`;
       if (data.length > maxEventLength) throw tooLarge();
-    } else if (field === "id" && !value.includes("\u0000")) idBuffer = value;
-    else if (field === "retry" && /^\d+$/.test(value)) state.retryMs = Number(value);
+    } else if (field === "id" && !value.includes("\u0000")) {
+      idBuffer = value;
+      blockId = value;
+    } else if (field === "retry" && /^\d+$/.test(value)) state.retryMs = Number(value);
   }
 
   /** Recebe o próximo pedaço já decodificado e devolve os eventos que ele completou. */

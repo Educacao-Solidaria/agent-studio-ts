@@ -64,13 +64,14 @@ describe("createSSEParser", () => {
     expect(messages.map((message) => message.data)).toEqual(["a\nb", "c", "d"]);
   });
 
-  it("guarda o id entre eventos e ignora id com NUL e retry que não é inteiro", () => {
+  it("evento leva o id do bloco; o último id persiste no estado; id com NUL e retry ruim saem", () => {
     const parser = createSSEParser({ lastEventId: "0" });
     expect(parser.push("data: x\n\nid: 7\ndata: y\n\nid: 8\u0000\ndata:\n\n")).toEqual([
-      { event: "", data: "x", id: "0" },
+      { event: "", data: "x", id: "" },
       { event: "", data: "y", id: "7" },
-      { event: "", data: "", id: "7" },
+      { event: "", data: "", id: "" },
     ]);
+    expect(parser.state.lastEventId).toBe("7");
     expect(parser.push("retry: 1.5\nid: 9\n\n")).toEqual([]);
     expect(parser.state).toEqual({ lastEventId: "9", retryMs: undefined });
     expect(parser.push("retry: 3000\n\n")).toEqual([]);
@@ -103,7 +104,7 @@ describe("readSSE", () => {
     const first = { id: "c1", model: "m", delta_content: "olá", is_last: false };
     expect(events).toEqual([
       { event: "chunk", id: "1", data: first },
-      { event: "done", id: "1", data: { finish_reason: "stop", total_tokens: 3, duration_ms: 9 } },
+      { event: "done", data: { finish_reason: "stop", total_tokens: 3, duration_ms: 9 } },
     ]);
     const [request] = requests;
     expect(request?.method).toBe("POST");
