@@ -64,6 +64,7 @@ export function createHandlers({ chunkDelayMs = 40 } = {}) {
             id: MOCK_MODEL,
             name: "Mock Model",
             pricing: { prompt: "0.000001", completion: "0.000002" },
+            context_length: 128000,
           },
         ],
       }),
