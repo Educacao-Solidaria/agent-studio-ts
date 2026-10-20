@@ -4,6 +4,7 @@ import {
   type InternalNode,
   type ReactFlowInstance,
 } from "@xyflow/react";
+import { datedFileName, downloadFile } from "../lib/download.ts";
 import { FALLBACK_SIZE } from "./auto-layout.ts";
 import { STATES } from "./default-node.tsx";
 import type { NodeExecutionState } from "./domain.ts";
@@ -173,12 +174,6 @@ export function renderSvg({ nodes, edges }: Scene, resolve: (value: string) => s
   return new XMLSerializer().serializeToString(svg);
 }
 
-/** Nome previsível e sem nada do usuário: `fluxo-AAAA-MM-DD.svg`, na data local. */
-export function exportFileName(now: Date) {
-  const date = [now.getFullYear(), now.getMonth() + 1, now.getDate()];
-  return `fluxo-${date.map((part) => String(part).padStart(2, "0")).join("-")}.svg`;
-}
-
 /** Baixa o fluxo do canvas como SVG, nas cores do tema que vale em `canvas` agora. */
 export function exportFlowSvg(flow: Flow, statuses: StatusStore | null, canvas: Element) {
   const style = getComputedStyle(canvas);
@@ -189,13 +184,5 @@ export function exportFlowSvg(flow: Flow, statuses: StatusStore | null, canvas: 
       style.getPropertyValue(`--${name}`).trim(),
     );
   const svg = renderSvg(sceneOf(flow, statuses), resolve);
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = exportFileName(new Date());
-  document.body.append(link);
-  link.click();
-  link.remove();
-  // Revogar já no clique cancela o download em alguns navegadores; o FileSaver.js espera 40 s.
-  setTimeout(() => URL.revokeObjectURL(url), 40_000);
+  downloadFile(datedFileName("fluxo", "svg", new Date()), svg, "image/svg+xml");
 }
