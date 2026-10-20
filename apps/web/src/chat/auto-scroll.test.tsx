@@ -84,11 +84,14 @@ describe("AutoScroll", () => {
     expect(newMessages()).toBeNull();
   });
 
-  it("a roda para cima solta antes do evento de scroll", () => {
+  it("a roda para cima solta antes do evento de scroll; a pinça de zoom (Ctrl) não", () => {
     const { scroller, grow } = setup();
+    act(() => void fireEvent.wheel(scroller, { deltaY: -40, ctrlKey: true }));
+    grow(100);
+    expect(scroller.scrollTop).toBe(800);
     act(() => void fireEvent.wheel(scroller, { deltaY: -40 }));
-    grow(200);
-    expect(scroller.scrollTop).toBe(700);
+    grow(100);
+    expect(scroller.scrollTop).toBe(800);
     expect(newMessages()).not.toBeNull();
   });
 

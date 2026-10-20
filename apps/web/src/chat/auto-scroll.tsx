@@ -9,7 +9,8 @@ export const STICK_THRESHOLD = 48;
 /**
  * Rolagem que gruda no fim enquanto o conteúdo cresce (texto chegando) e solta quando a pessoa
  * sobe; volta a grudar quando ela desce até o fim ou chama `scrollToBottom`. Funciona com lista
- * virtualizada: `scrollRef` no elemento que rola e `contentRef` no que tem a altura total.
+ * virtualizada: `scrollRef` no elemento que rola e `contentRef` no que tem a altura total — os
+ * dois montados junto com o hook, que só observa o que existe quando monta.
  *
  * Quem decide é a rolagem da pessoa, não a posição: rolar para cima solta (a roda solta já no
  * `wheel`, antes de o conteúdo novo puxar de volta), e rolar para baixo nunca solta — assim a
@@ -40,7 +41,8 @@ export function useStickToBottom(threshold = STICK_THRESHOLD) {
       lastTop = scroller.scrollTop;
     };
     const onWheel = (event: WheelEvent) => {
-      if (event.deltaY < 0 && scroller.scrollTop > 0) stick(false);
+      // Ctrl + roda é a pinça de zoom do trackpad: a pessoa não rolou.
+      if (event.deltaY < 0 && !event.ctrlKey && scroller.scrollTop > 0) stick(false);
     };
     // Cresceu o conteúdo ou mudou a altura da área: grudado, vai ao fim; solto, avisa se cresceu.
     // `lastTop` já muda aqui: o evento de scroll dessa ida ao fim só chega depois, e quem subir
