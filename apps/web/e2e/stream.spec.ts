@@ -22,7 +22,8 @@ async function settled(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/e2e/stream.html");
-  await expect(page.getByRole("button", { name: "acentos" })).toBeVisible();
+  // 1º carregamento: o Vite compila a página e o MSW registra o service worker.
+  await expect(page.getByRole("button", { name: "acentos" })).toBeVisible({ timeout: 30_000 });
 });
 
 test("o texto chega inteiro e na ordem, com multibyte partido entre pedaços e código destacado", async ({

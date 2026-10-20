@@ -6,6 +6,7 @@ export default defineConfig({
   testDir: "e2e",
   workers: 1, // a página é uma só e o stream é cronometrado: um teste por vez
   forbidOnly: true,
+  expect: { timeout: 10_000 }, // o dev server compila sob demanda: runner lento não é falha
   reporter: [["list"]],
   use: { baseURL: "http://localhost:4319", trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
