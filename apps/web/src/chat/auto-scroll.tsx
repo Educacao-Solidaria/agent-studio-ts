@@ -90,17 +90,22 @@ export function AutoScroll({ children, className, threshold }: AutoScrollProps) 
       <div ref={scrollRef} tabIndex={-1} className="h-full overflow-y-auto">
         <div ref={contentRef}>{children}</div>
       </div>
-      {unseen && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="-translate-x-1/2 absolute bottom-3 left-1/2 shadow-md"
-          onClick={scrollToBottom}
-        >
-          <Icon name="expand" />
-          Novas mensagens
-        </Button>
-      )}
+      {unseen && <NewMessagesButton onClick={scrollToBottom} />}
     </div>
+  );
+}
+
+/** O botão que volta ao fim quando chegou conteúdo com a pessoa lá em cima (área `relative`). */
+export function NewMessagesButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      className="-translate-x-1/2 absolute bottom-3 left-1/2 shadow-md"
+      onClick={onClick}
+    >
+      <Icon name="expand" />
+      Novas mensagens
+    </Button>
   );
 }
