@@ -142,9 +142,12 @@ describe("WebSocketTransport", () => {
 
   it("desconectar fecha com 1000 e não reconecta; handshake recusado também não", async () => {
     const { mcp, gateway } = await connected({ baseDelayMs: 1 });
+    await mcp.send(request(1));
     await mcp.disconnect();
     await tick(20);
     expect([gateway.closes, gateway.clients.length, mcp.errors]).toEqual([[1000], 1, []]);
+    const error = { code: CONNECTION_CLOSED, message: "o transporte foi desconectado" };
+    expect(mcp.messages).toEqual([{ jsonrpc: "2.0", id: 1, error }]); // em curso não fica pendurada
     await expect(mcp.send(request(1))).rejects.toThrow("desconectado");
 
     server.resetHandlers(); // o gateway acima também atenderia a URL

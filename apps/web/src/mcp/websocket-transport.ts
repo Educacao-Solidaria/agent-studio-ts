@@ -14,7 +14,7 @@ type Waiting = { text: string; id: Id; resolve: () => void; reject: (error: Erro
 type Envelope = { id: Id; method?: string; params?: { requestId?: unknown } };
 
 export interface WebSocketTransportOptions {
-  maxRetries?: number; // reconexões seguidas sem abrir antes de desistir; 0 = nenhuma
+  maxRetries?: number; // reconexões seguidas sem abrir antes de desistir; 0 ou NaN = nenhuma
   baseDelayMs?: number;
   maxDelayMs?: number;
   onReconnect?: () => void; // a conexão voltou: sessão nova no servidor, refaça o `initialize`
@@ -34,11 +34,9 @@ function kindOf(message: unknown) {
   return isId(id) && ("result" in message || "error" in message) ? "response" : undefined;
 }
 
-/**
- * `McpTransport` da raiz por WebSocket. Requisições saem na ordem, até 16 em curso; notificação e
+/** `McpTransport` da raiz por WebSocket. Requisições saem na ordem, até 16 em curso; notificação e
  * resposta não esperam vaga (resposta presa atrás de requisições travaria o servidor que depende
- * dela). Queda fora do `disconnect` reconecta com backoff e jitter; nada passa de uma sessão a outra.
- */
+ * dela). Queda fora do `disconnect` reconecta com backoff e jitter; sessão nova a cada conexão. */
 export class WebSocketTransport implements McpTransport {
   #socket?: WebSocket;
   #url = "";
@@ -126,7 +124,6 @@ export class WebSocketTransport implements McpTransport {
   #reconnect() {
     const { maxRetries = 5, baseDelayMs = 1000, maxDelayMs = 30_000, onReconnect } = this.options;
     if (this.#closing) return;
-    // `!(a < b)` e não `a >= b`: com NaN desiste em vez de reconectar para sempre.
     if (!(this.#failures < maxRetries)) {
       this.#error(new Error(`WebSocket do MCP sem conexão depois de ${maxRetries} tentativas`));
       return;
@@ -165,7 +162,6 @@ export class WebSocketTransport implements McpTransport {
       return void this.#error(new Error("mensagem do servidor não é JSON"));
     }
     const { id, method } = (message ?? {}) as { id?: unknown; method?: unknown };
-    // Resposta libera a vaga da requisição dela (a que esperava sai agora).
     if (method === undefined && isId(id) && this.#inFlight.delete(id)) this.#flush();
     this.#deliver(message);
   }

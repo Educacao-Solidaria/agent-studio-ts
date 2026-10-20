@@ -36,7 +36,7 @@ export async function connectMcp(
   } finally {
     clearTimeout(timer);
   }
-  await sse.disconnect().catch(() => undefined);
+  sse.disconnect().catch(() => undefined); // sem esperar: um disconnect preso não segura a troca
   const fallback = await websocket();
   await fallback.connect(urls.websocket);
   return fallback;
