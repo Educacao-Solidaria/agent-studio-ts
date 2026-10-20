@@ -93,8 +93,7 @@ describe("indexDocument", () => {
   });
 
   it("corpo que passa do teto depois de codificado nem sai", async () => {
-    // Aspas viram \" no JSON: 1,5 MiB de aspas são 3 MiB de corpo. Pedido que saísse acharia
-    // a rede sem handler (onUnhandledRequest: "error") e a mensagem seria outra.
+    // 1,5 MiB de aspas são 3 MiB no JSON; se saísse, o onUnhandledRequest daria outra mensagem.
     await expect(send('"'.repeat(1.5 * 2 ** 20))).rejects.toThrow(/^Codificado para envio/);
   });
 });

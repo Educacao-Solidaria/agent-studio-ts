@@ -7,7 +7,6 @@ import * as rag from "./index-document.ts";
 type Status = "queued" | "sending" | "done" | "error" | "cancelled";
 type Entry = { id: number; name: string; status: Status; detail: string };
 
-/** Ícone e tom de cada estado; o texto ao lado é quem diz o estado (o ícone é decorativo). */
 const LOOK: Record<Status, [IconName, string?]> = {
   queued: ["queued"],
   sending: ["loading", "motion-safe:animate-spin"],
@@ -16,7 +15,6 @@ const LOOK: Record<Status, [IconName, string?]> = {
   cancelled: ["warning"],
 };
 const STEP: Partial<Record<string, number>> = { dragenter: 1, dragleave: -1 };
-const DRAG_EVENTS = ["dragover", "drop"] as const;
 const ACCEPT = rag.ACCEPTED.join(",");
 const DUPLICATE = "Nome repetido neste envio: o segundo substituiria o primeiro no RAG.";
 const pending = (entry: Entry) => entry.status === "queued" || entry.status === "sending";
@@ -41,6 +39,7 @@ export function FileUpload({ url = rag.INDEX_PATH, send = rag.indexDocument }: F
   const depth = useRef(0); // entrar num filho dá dragleave na área: conta a profundidade
   const ids = useRef(0);
   const picker = useRef<HTMLInputElement>(null);
+  const chooser = useRef<HTMLButtonElement>(null);
 
   const mark = (match: (id: number) => boolean, status: Status, detail: string) =>
     setEntries((list) => list.map((e) => (match(e.id) ? { ...e, status, detail } : e)));
@@ -90,6 +89,11 @@ export function FileUpload({ url = rag.INDEX_PATH, send = rag.indexDocument }: F
     event.currentTarget.value = ""; // o mesmo arquivo de novo também dispara change
   }
 
+  function clear() {
+    setEntries([]);
+    chooser.current?.focus(); // o botão "Limpar lista" some: o foco não cai no body
+  }
+
   function cancel() {
     running.current?.abort();
     running.current = null;
@@ -104,9 +108,9 @@ export function FileUpload({ url = rag.INDEX_PATH, send = rag.indexDocument }: F
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = "none";
     };
-    for (const type of DRAG_EVENTS) window.addEventListener(type, guard);
+    for (const type of ["dragover", "drop"] as const) window.addEventListener(type, guard);
     return () => {
-      for (const type of DRAG_EVENTS) window.removeEventListener(type, guard);
+      for (const type of ["dragover", "drop"] as const) window.removeEventListener(type, guard);
       running.current?.abort();
       queue.current = [];
     };
@@ -146,12 +150,12 @@ export function FileUpload({ url = rag.INDEX_PATH, send = rag.indexDocument }: F
         não). Um arquivo com o mesmo nome substitui a versão já indexada.
       </p>
       <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" onClick={() => picker.current?.click()}>
+        <Button ref={chooser} variant="secondary" size="sm" onClick={() => picker.current?.click()}>
           <Icon name="add" />
           Escolher arquivos
         </Button>
         {entries.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={busy ? cancel : () => setEntries([])}>
+          <Button variant="ghost" size="sm" onClick={busy ? cancel : clear}>
             {busy ? "Cancelar envio" : "Limpar lista"}
           </Button>
         )}

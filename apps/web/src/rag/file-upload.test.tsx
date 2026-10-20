@@ -88,6 +88,7 @@ it("cancelar fecha o pedido em curso, tira a fila e não trava o envio seguinte"
   await waitFor(() => expect(row("depois.md")).toContain("Indexado: 2 trechos."));
   await user.click(screen.getByRole("button", { name: "Limpar lista" }));
   expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  expect(document.activeElement?.textContent).toBe("Escolher arquivos"); // o foco não se perde
   fireEvent.drop(zone(), files(named("lento3.md")));
   await waitFor(() => expect(signals).toHaveLength(3));
   unmount(); // desmontar também fecha o pedido em curso

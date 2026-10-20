@@ -26,9 +26,8 @@ function extension(name: string) {
 }
 
 /**
- * Identidade do arquivo no RAG: o servidor troca a versão anterior do mesmo `source_uri`.
- * NFC para o nome vindo do macOS (NFD) ser o mesmo; codificado porque o servidor recusa
- * caractere de controle e invisível no `source_uri` (e o nome do arquivo pode ter).
+ * Identidade no RAG: o servidor troca a versão anterior do mesmo `source_uri`. NFC para o nome
+ * vindo do macOS (NFD) ser o mesmo; codificado porque o servidor recusa controle e invisível.
  */
 export const sourceUriOf = (name: string) => `upload:${encodeURIComponent(name.normalize("NFC"))}`;
 
@@ -68,7 +67,7 @@ export async function indexDocument(url: string, doc: Doc, signal?: AbortSignal)
   const response = await fetch(url, { method: "POST", headers, body, signal }).catch((error) =>
     signal?.aborted ? Promise.reject(error) : fail("Sem conexão com o serviço de indexação."),
   );
-  const json = await response.json().catch(() => null);
+  const json = await response.json().catch(() => null); // any: cada campo é conferido abaixo
   signal?.throwIfAborted();
   if (!response.ok) fail(text(json?.error?.message) ?? `O serviço respondeu ${response.status}.`);
   const { document_id: id, chunks_created: chunks, success, message } = json ?? {};
