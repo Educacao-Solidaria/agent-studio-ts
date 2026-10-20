@@ -87,6 +87,11 @@ export function triggerResize(target: Element, size: { width: number; height: nu
   }
 }
 
+/** Algum ResizeObserver ainda observa `target`? (elemento que saiu do DOM não deve seguir preso) */
+export function isObserved(target: Element) {
+  return [...observers].some((o) => o instanceof MockResizeObserver && o.targets.has(target));
+}
+
 /** Dispara cada ResizeObserver com todos os alvos que ele observa (a medição inicial do browser). */
 export function triggerAllResizes() {
   for (const observer of observers) {
