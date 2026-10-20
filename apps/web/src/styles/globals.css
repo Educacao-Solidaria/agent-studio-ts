@@ -214,6 +214,17 @@
   border-radius: var(--radius-md);
 }
 
+/* Destaque de sintaxe do chat (chat/code-block): cores do tema, as claras puxadas para o texto.
+ * Contraste ≥ 4,5:1 sobre o --muted do bloco nos dois temas. */
+.syntax {
+  --syntax-comment: var(--muted-foreground);
+  --syntax-keyword: var(--primary);
+  --syntax-string: color-mix(in oklab, var(--success) 70%, var(--foreground));
+  --syntax-constant: color-mix(in oklab, var(--warning) 55%, var(--foreground));
+  --syntax-function: color-mix(in oklab, var(--primary) 60%, var(--danger));
+  --syntax-type: color-mix(in oklab, var(--danger) 75%, var(--foreground));
+}
+
 /* Animações de entrada/saída dos overlays (Radix espera o animationend para desmontar). */
 @theme {
   --animate-fade-in: fade-in 150ms ease-out;
