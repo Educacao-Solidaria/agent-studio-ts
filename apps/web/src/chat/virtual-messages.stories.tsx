@@ -4,9 +4,7 @@ import { AutoScroll } from "./auto-scroll.tsx";
 import { VirtualMessages } from "./virtual-messages.tsx";
 
 type Message = { id: string; text: string };
-const WORDS = "o fluxo chama o gateway que consulta o cache e o rag antes de ir ao modelo".split(
-  " ",
-);
+const WORDS = "o fluxo chama o gateway que consulta o cache e o rag antes do modelo".split(" ");
 // Tamanhos de 4 a 63 palavras: alturas bem diferentes, como numa conversa de verdade.
 const message = (i: number): Message => ({
   id: `m${i}`,
@@ -18,15 +16,8 @@ const bubble = (m: Message) => (
 );
 
 /** `virtual: false` mostra a mesma lista inteira no DOM (para comparar; não é uma história). */
-function Demo({
-  count,
-  streaming = false,
-  virtual = true,
-}: {
-  count: number;
-  streaming?: boolean;
-  virtual?: boolean;
-}) {
+type DemoProps = { count: number; streaming?: boolean; virtual?: boolean };
+function Demo({ count, streaming = false, virtual = true }: DemoProps) {
   const [items, setItems] = useState(() => MANY.slice(0, count));
   useEffect(() => {
     if (!streaming) return;

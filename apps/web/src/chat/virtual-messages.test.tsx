@@ -15,13 +15,14 @@ const id = (row: Element) => (row.firstElementChild as HTMLElement).dataset.id ?
  * (variável, 40 a 120 px), as linhas em fluxo depois do espaço de cima, e o `scrollTop` recortado
  * como no navegador (inclusive quando o conteúdo encolhe). `measured` anota quem já foi medida.
  */
-function setup(initial: Message[]) {
+function setup(initial: Message[], props: { estimateSize?: number; overscan?: number } = {}) {
   const area = { height: 400 };
   const heights = new Map<string, number>();
   const heightOf = (key: string) => heights.get(key) ?? 40 + (Number(key.slice(1)) % 5) * 20;
   const measured = new Set<string>();
+  const base = { getKey: (m: Message) => m.id, estimateSize: ESTIMATE, overscan: OVERSCAN };
   const ui = (items: Message[]) => (
-    <VirtualMessages items={items} getKey={(m) => m.id} estimateSize={ESTIMATE} overscan={OVERSCAN}>
+    <VirtualMessages items={items} {...base} {...props}>
       {(m) => <p data-id={m.id}>{m.text}</p>}
     </VirtualMessages>
   );
@@ -33,7 +34,8 @@ function setup(initial: Message[]) {
   const firstPaint = screen.queryAllByRole("listitem").map(id);
   const scroller = result.container.querySelector(".overflow-y-auto") as HTMLDivElement;
   const sizer = screen.getByRole("list").parentElement as HTMLElement;
-  const rows = () => screen.queryAllByRole("listitem");
+  // querySelectorAll, não *ByRole: o layout simulado lê as linhas a cada scrollTop (ByRole é lento).
+  const rows = () => [...sizer.querySelectorAll("li")];
   const pad = (side: "paddingTop" | "paddingBottom") => Number.parseFloat(sizer.style[side]) || 0;
   const marginOf = (row: Element) => Number.parseFloat((row as HTMLElement).style.marginTop) || 0;
   const startOf = (row: Element) => {
@@ -137,7 +139,8 @@ function setup(initial: Message[]) {
     rerender,
     userScroll,
   };
-  return { ...tools, scroller, total, known, rows, rowOf, startOf, endOf, expectRange };
+  const unmount = result.unmount;
+  return { ...tools, scroller, total, known, rows, rowOf, startOf, endOf, expectRange, unmount };
 }
 
 it("milhares de mensagens: abre no fim, só a tela e o overscan no DOM, total pelas medidas", () => {
@@ -252,6 +255,20 @@ it("chave estável: mensagens antigas carregadas no topo não embaralham as altu
   const last = rows().at(-1) as HTMLElement;
   expect(last).toBe(before); // a mesma linha segue com a mesma mensagem (chave, não posição)
   expect([id(last), startOf(last)]).toEqual(["m29", known([older, ...messages(29)])]);
+});
+
+it("estimativa 0 ou NaN e overscan NaN ou negativo não desligam a virtualização", () => {
+  for (const props of [{ estimateSize: 0 }, { estimateSize: Number.NaN, overscan: Number.NaN }]) {
+    const { rows, unmount } = setup(messages(5_000), props);
+    expect([rows().length < 40, rows().at(-1)?.getAttribute("aria-posinset")]).toEqual([
+      true,
+      "5000",
+    ]);
+    unmount();
+  }
+  const { rows, startOf, scroller } = setup(messages(300), { overscan: -50 });
+  const head = startOf(rows()[0] as Element); // overscan 0: a 1ª cobre o topo da tela e só
+  expect([head <= scroller.scrollTop, head > scroller.scrollTop - 120]).toEqual([true, true]);
 });
 
 it("lista vazia: nada no DOM, altura zero e sem erro", () => {

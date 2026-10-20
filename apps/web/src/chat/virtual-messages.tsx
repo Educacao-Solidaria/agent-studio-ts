@@ -41,6 +41,9 @@ export function VirtualMessages<T>({
   className,
 }: VirtualMessagesProps<T>) {
   const { scrollRef, contentRef, unseen, scrollToBottom } = useStickToBottom();
+  // Prop degenerada não desliga a virtualização (estimativa 0 poria todas no DOM; NaN, nenhuma).
+  const estimate = Number.isFinite(estimateSize) && estimateSize > 0 ? estimateSize : 96;
+  const ahead = Number.isFinite(overscan) ? Math.max(0, overscan) : 600;
   const measured = useRef(new Map<string, number>());
   const [, redraw] = useReducer((frame: number) => frame + 1, 0);
   // Começa pelo fim (é onde a conversa abre): o 1º render já é o das últimas mensagens.
@@ -87,7 +90,7 @@ export function VirtualMessages<T>({
           if (before === height) continue;
           const top = element.getBoundingClientRect().top - fold; // < 0: começa acima da tela
           if (before === undefined ? top < 0 : top + before <= 0)
-            shift += height - (before ?? estimateSize);
+            shift += height - (before ?? estimate);
           measured.current.set(key, height);
           changed = true;
         }
@@ -101,18 +104,18 @@ export function VirtualMessages<T>({
       rows.current.observe(row);
       return () => rows.current?.unobserve(row);
     },
-    [scrollRef, estimateSize],
+    [scrollRef, estimate],
   );
 
-  const sizes = items.map((item) => measured.current.get(getKey(item)) ?? estimateSize);
+  const sizes = items.map((item) => measured.current.get(getKey(item)) ?? estimate);
   let total = 0;
   const starts = sizes.map((size) => {
     total += size;
     return total - size;
   });
   const top = Math.min(view.top, Math.max(0, total - view.height));
-  const first = Math.min(firstEndingAfter(starts, sizes, top - overscan), items.length);
-  const end = Math.max(first, firstEndingAfter(starts, sizes, top + view.height + overscan) + 1);
+  const first = Math.min(firstEndingAfter(starts, sizes, top - ahead), items.length);
+  const end = Math.max(first, firstEndingAfter(starts, sizes, top + view.height + ahead) + 1);
   const stop = Math.min(end, items.length);
   // A última fica sempre no DOM, depois do espaço das do meio: é a que recebe o texto do stream,
   // e ela crescer com a pessoa lá em cima tem de chegar ao `useStickToBottom` ("Novas mensagens").
