@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Chart } from "chart.js";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setMediaQuery } from "../test/browser-mocks.ts";
 import { fakeCanvas2d } from "../test/canvas.ts";
 import { PERF_WINDOW, PerfCharts } from "./perf-charts.tsx";
@@ -25,13 +25,15 @@ afterEach(() => {
 
 describe("PerfCharts", () => {
   it("um gráfico por série, atualizado a cada resposta sem remontar, só com a janela", async () => {
-    const { rerender } = render(<PerfCharts samples={[]} />);
-    expect(screen.getByText("Sem respostas ainda.")).toBeTruthy(); // e nenhum gráfico
-    rerender(<PerfCharts samples={samples(3)} />);
+    const load = vi.fn(loadChartKit);
+    const { rerender } = render(<PerfCharts samples={[]} load={load} />);
+    expect(screen.getByText("Sem respostas ainda.")).toBeTruthy();
+    expect(load).not.toHaveBeenCalled(); // sem dado, o Chart.js nem baixa
+    rerender(<PerfCharts samples={samples(3)} load={load} />);
     await mounted();
     const before = charts();
     const gap = sample(99, { ttftMs: undefined, tps: undefined });
-    rerender(<PerfCharts samples={[...samples(PERF_WINDOW + 4), gap]} />);
+    rerender(<PerfCharts samples={[...samples(PERF_WINDOW + 4), gap]} load={load} />);
     const [ttft, tps] = charts();
     expect([ttft, tps].map((chart, i) => chart === before[i])).toEqual([true, true]);
     expect(ttft?.data.labels).toHaveLength(PERF_WINDOW);

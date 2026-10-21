@@ -12,10 +12,12 @@ export async function loadChartKit(): Promise<ChartKit> {
   return import("./chart-kit.ts");
 }
 
-/** O pedaço do Chart.js para os gráficos de um painel; `failed` se não carregar. */
-export function useChartKit(load: () => Promise<ChartKit> = loadChartKit) {
+/** O pedaço do Chart.js para os gráficos de um painel, baixado só quando há o que desenhar
+ * (`wanted`); `failed` se não carregar. */
+export function useChartKit(load: () => Promise<ChartKit> = loadChartKit, wanted = true) {
   const [state, setState] = useState<{ kit?: ChartKit; failed?: boolean }>({});
   useEffect(() => {
+    if (!wanted) return;
     let live = true;
     load().then(
       (kit) => live && setState({ kit }),
@@ -24,7 +26,7 @@ export function useChartKit(load: () => Promise<ChartKit> = loadChartKit) {
     return () => {
       live = false;
     };
-  }, [load]);
+  }, [load, wanted]);
   return state;
 }
 
@@ -42,10 +44,12 @@ function subscribeLook(onChange: () => void) {
 // Em texto: o mesmo visual dá o mesmo snapshot (sem render à toa).
 function readLook() {
   const style = getComputedStyle(document.documentElement);
-  const [line, text, grid] = ["--primary", "--muted-foreground", "--border"].map((name) =>
+  const tokens = ["--primary", "--muted-foreground", "--border", "--success", "--background"];
+  const [line, text, grid, success, background] = tokens.map((name) =>
     style.getPropertyValue(name).trim(),
   );
-  return JSON.stringify({ reducedMotion: matchMedia(MOTION).matches, line, text, grid });
+  const reducedMotion = matchMedia(MOTION).matches;
+  return JSON.stringify({ reducedMotion, line, text, grid, success, background });
 }
 
 /** Cores do tema e `prefers-reduced-motion`, relidos quando qualquer um deles muda. */
