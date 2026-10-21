@@ -12,10 +12,16 @@ const SEP = ";";
 // U+FF20) para os comuns: entram também, como no `escape_formulas` do csv-stringify.
 const FORMULA = /^[=+\-@\t\r\uFF1D\uFF0B\uFF0D\uFF20]/;
 
-/** Célula de texto: sempre entre aspas (pode ter `;`, aspas, quebra de linha) e, se começar como
- * fórmula, com um apóstrofo na frente, que a planilha mostra como texto (receita da OWASP). */
+// Planilha com outro separador (o Excel em inglês usa a vírgula) não vê as aspas no meio da linha:
+// `,`, `;`, tab ou quebra dentro do texto abrem célula ou linha nova, que pode começar com fórmula
+// (provado no LibreOffice). Mesma classe do FORMULA, depois de um desses.
+const INNER = new RegExp(`([,;\\t\\r\\n])(?=${FORMULA.source.slice(1)})`, "g");
+
+/** Célula de texto: sempre entre aspas (pode ter `;`, aspas, quebra de linha) e um apóstrofo, que
+ * a planilha mostra como texto, antes de todo começo de fórmula: no início e depois de separador
+ * ou quebra (receita da OWASP). */
 export function textCell(value: string) {
-  const safe = FORMULA.test(value) ? `'${value}` : value;
+  const safe = (FORMULA.test(value) ? `'${value}` : value).replace(INNER, "$1'");
   return `"${safe.replaceAll('"', '""')}"`;
 }
 

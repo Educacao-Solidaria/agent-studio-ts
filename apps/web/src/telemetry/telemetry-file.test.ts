@@ -34,7 +34,7 @@ describe("telemetryToCsv", () => {
     );
   });
 
-  const formulas = ["=1+1", "+1", "-1+1", "@SUM(A1)", "\t=1", "\r=1"];
+  const formulas = ["=1+1", "+1", "-1+1", "@SUM(A1)", "\t1", "\r1"];
   const wide = ["\uFF1D1+1", "\uFF0B1", "\uFF0D1+1", "\uFF20SUM(A1)"]; // largura total
   it.each([...formulas, ...wide])("%j vira texto", (model) => {
     expect(rows(telemetryToCsv([sample({ model })]))[1]?.split(";")[1]).toBe(`"'${model}"`);
@@ -44,6 +44,13 @@ describe("telemetryToCsv", () => {
     expect(textCell('a"b;c\nd')).toBe('"a""b;c\nd"');
     expect(textCell(" =1")).toBe('" =1"'); // espaço na frente: a planilha não avalia
     expect(telemetryToCsv([sample({ model: `meu ${KEY}` })])).toContain(`"meu ${REDACTED}"`);
+  });
+
+  it("fórmula depois de vírgula, ';', tab ou quebra vira texto (outro separador)", () => {
+    expect(textCell("x,=1+1,")).toBe(`"x,'=1+1,"`);
+    expect(textCell("x;-1\r+2\n@A1")).toBe(`"x;'-1\r'+2\n'@A1"`);
+    expect([textCell("\t+1"), textCell("\r=1")]).toEqual([`"'\t'+1"`, `"'\r'=1"`]);
+    expect(textCell("a,b; c-d")).toBe('"a,b; c-d"');
   });
 });
 
@@ -93,12 +100,15 @@ describe("telemetryToJson", () => {
   });
 });
 
-it("NaN, infinito, horário inválido e cache desconhecido: vazio, sem virar número nem hit", () => {
+it("NaN, infinito, horário inválido, sem medida, cache desconhecido: nem número nem hit", () => {
   const broken = sample({ at: Number.NaN, ttftMs: Number.NaN, tps: Number.POSITIVE_INFINITY });
   expect(rows(telemetryToCsv([broken]))[1]).toBe(';"openai/gpt-4o-mini";;;não;miss');
-  const list = [broken, sample({ cached: undefined })];
+  // Parou antes do 1º token: sem TTFT, sem taxa e sem `metadata`.
+  const stopped = sample({ ttftMs: undefined, tps: undefined, cached: undefined });
+  const list = [broken, sample({ cached: undefined }), stopped];
   const file = JSON.parse(telemetryToJson(list, { now: new Date(at) }));
   expect(file.responses[0]).toMatchObject({ at: null, ttftMs: null, tokensPerSecond: null });
+  expect(file.responses[2]).toMatchObject({ ttftMs: null, tokensPerSecond: null, cache: null });
   expect(file.summary).toMatchObject({ startedAt: file.exportedAt, ttftP50Ms: 412 });
   expect(file.summary).toMatchObject({ cacheHits: 0, cacheMisses: 1 });
   expect(file.summary.tokensPerSecondMean).toBe(38.46);
