@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChatMessage, ToolCall } from "../../../../src/types/domain.ts";
-import { chatToJson, chatToMarkdown, REDACTED } from "./chat-file.ts";
+import { REDACTED } from "../lib/redact.ts";
+import { chatToJson, chatToMarkdown } from "./chat-file.ts";
 
 const t0 = Date.UTC(2026, 9, 20, 16, 58, 5);
 const options = { now: new Date(Date.UTC(2026, 9, 20, 17)), timeZone: "UTC" };

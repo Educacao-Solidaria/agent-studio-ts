@@ -1,7 +1,5 @@
-import { useState } from "react";
 import type { ChatMessage } from "../../../../src/types/domain.ts";
-import { Icon } from "../components/icons.tsx";
-import { Button } from "../components/ui/button.tsx";
+import { ExportButtons } from "../components/export-buttons.tsx";
 import type { ExportFormat } from "./chat-file.ts";
 
 type ChatFileModule = typeof import("./chat-file.ts");
@@ -13,32 +11,18 @@ export type ExportChatProps = {
   load?: () => Promise<ChatFileModule>;
 };
 
+const FORMATS: Record<ExportFormat, string> = { markdown: "Markdown", json: "JSON" };
+
 /** Botões de exportar; o painel de chat (PR 54 do Luan) passa as mensagens da sessão. */
 export function ExportChat({ messages, load = loadChatFile }: ExportChatProps) {
-  const [failed, setFailed] = useState(false);
-  const save = async (format: ExportFormat) => {
-    try {
-      (await load()).saveChat(messages, format, { now: new Date() });
-      setFailed(false);
-    } catch {
-      setFailed(true);
-    }
-  };
+  const save = async (format: ExportFormat) =>
+    (await load()).saveChat(messages, format, { now: new Date() });
   return (
-    <fieldset aria-label="Exportar conversa" disabled={!messages.length} className="flex gap-2">
-      <Button variant="secondary" size="sm" onClick={() => save("markdown")}>
-        <Icon name="download" />
-        Markdown
-      </Button>
-      <Button variant="secondary" size="sm" onClick={() => save("json")}>
-        <Icon name="download" />
-        JSON
-      </Button>
-      {failed && (
-        <p role="alert" className="self-center text-danger text-sm">
-          Não foi possível exportar. Tente de novo.
-        </p>
-      )}
-    </fieldset>
+    <ExportButtons
+      label="Exportar conversa"
+      formats={FORMATS}
+      disabled={!messages.length}
+      save={save}
+    />
   );
 }

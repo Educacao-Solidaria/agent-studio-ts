@@ -53,7 +53,7 @@ describe("ExportChat", () => {
     render(<ExportChat messages={messages} load={load} />);
     fireEvent.click(button("JSON"));
     expect((await screen.findByRole("alert")).textContent).toBe(
-      "Não foi possível exportar. Tente de novo.",
+      "Não foi possível exportar. Tente de novo; se o erro persistir, recarregue a página.",
     );
     expect(names).toEqual([]);
     fireEvent.click(button("JSON"));
