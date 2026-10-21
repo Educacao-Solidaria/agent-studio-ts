@@ -42,14 +42,31 @@ export async function checkHealth(url: string, signal: AbortSignal, timeoutMs = 
   }
 }
 
-/** `navigator.onLine` e a saúde de cada serviço; `down` só tem quem falhou `threshold` vezes seguidas. */
-export function useConnectivity(services: readonly Service[], options: ConnectivityOptions = {}) {
+/** Liga ou desliga `name` na lista, devolvendo a MESMA lista quando nada muda (sem render). */
+const toggle = (names: readonly string[], name: string, on: boolean) => {
+  if (names.includes(name) === on) return names;
+  return on ? [...names, name] : names.filter((other) => other !== name);
+};
+
+/**
+ * `navigator.onLine` e a saúde de cada serviço: `up` respondeu bem na última checagem; `down`
+ * falhou `threshold` vezes seguidas. Em nenhum dos dois: ainda sem resposta, ou falhou abaixo do
+ * limite e está tentando de novo.
+ */
+export type Connectivity = { online: boolean; down: readonly string[]; up: readonly string[] };
+
+/** Uma sondagem por serviço; o resultado serve à faixa e às lâmpadas (não sonde de novo). */
+export function useConnectivity(
+  services: readonly Service[],
+  options: ConnectivityOptions = {},
+): Connectivity {
   const interval = atLeast(options.intervalMs ?? 30_000, 1000, 30_000);
   const threshold = atLeast(options.threshold ?? 2, 1, 2);
   const base = atLeast(options.baseDelayMs ?? 2000, 100, 2000);
   const max = atLeast(options.maxDelayMs ?? 60_000, base, 60_000);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [down, setDown] = useState<readonly string[]>([]);
+  const [up, setUp] = useState<readonly string[]>([]);
   const check = useRef(options.check ?? checkHealth);
   useLayoutEffect(() => {
     check.current = options.check ?? checkHealth;
@@ -61,11 +78,6 @@ export function useConnectivity(services: readonly Service[], options: Connectiv
     const timers = new Map<string, ReturnType<typeof setTimeout>>();
     const failures = new Map<string, number>();
     const busy = new Set<string>();
-    const mark = (name: string, isDown: boolean) =>
-      setDown((names) => {
-        if (names.includes(name) === isDown) return names;
-        return isDown ? [...names, name] : names.filter((other) => other !== name);
-      });
     async function probe({ name, url }: Service) {
       busy.add(name);
       // `check` que lança antes de devolver a promessa também é falha (e não prende o serviço em `busy`).
@@ -75,7 +87,8 @@ export function useConnectivity(services: readonly Service[], options: Connectiv
       if (stop.signal.aborted) return;
       const failed = ok ? 0 : (failures.get(name) ?? 0) + 1;
       failures.set(name, failed);
-      mark(name, failed >= threshold);
+      setDown((names) => toggle(names, name, failed >= threshold));
+      setUp((names) => toggle(names, name, ok));
       const next = ok ? interval : backoffDelay(failed - 1, base, max);
       timers.set(
         name,
@@ -94,7 +107,8 @@ export function useConnectivity(services: readonly Service[], options: Connectiv
       recheck();
     };
     const onOffline = () => setOnline(false);
-    setDown((names) => (names.length ? [] : names)); // a lista mudou: quem saiu dela não fica
+    // A lista mudou: quem saiu dela não fica.
+    for (const reset of [setDown, setUp]) reset((names) => (names.length ? [] : names));
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     recheck();
@@ -106,14 +120,18 @@ export function useConnectivity(services: readonly Service[], options: Connectiv
     };
   }, [key, interval, threshold, base, max]);
 
-  return { online, down };
+  return { online, down, up };
 }
 
 export type OfflineBannerProps = ConnectivityOptions & { services: readonly Service[] };
 
 /** Faixa de aviso quando a rede cai ou um serviço para de responder; avisa quando volta. */
 export function OfflineBanner({ services, ...options }: OfflineBannerProps) {
-  const { online, down } = useConnectivity(services, options);
+  return <ConnectivityNotice {...useConnectivity(services, options)} />;
+}
+
+/** A faixa a partir de uma `useConnectivity` que o host já tem (ex.: a mesma do `ServiceStatus`). */
+export function ConnectivityNotice({ online, down }: Pick<Connectivity, "online" | "down">) {
   const what = down.length > 1 ? "Serviços indisponíveis" : "Serviço indisponível";
   const unavailable = down.length ? `${what}: ${list.format(down)}. Tentando de novo…` : "";
   const problem = online ? unavailable : OFFLINE;
