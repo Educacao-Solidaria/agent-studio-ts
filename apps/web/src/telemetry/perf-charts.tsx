@@ -49,7 +49,7 @@ export type PerfChartsProps = { samples: readonly PerfSample[]; load?: () => Pro
 /** TTFT e tokens/s das últimas respostas, um gráfico cada (unidades diferentes não dividem eixo);
  * a tabela com os mesmos dados é a alternativa acessível e aparece sozinha se o gráfico falhar. */
 export function PerfCharts({ samples, load }: PerfChartsProps) {
-  const { kit, failed } = useChartKit(load);
+  const { kit, failed } = useChartKit(load, samples.length > 0);
   const look = useChartLook();
   const [table, setTable] = useState(false);
   const tableId = useId();

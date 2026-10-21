@@ -1,20 +1,26 @@
 import {
+  ArcElement,
   CategoryScale,
   Chart,
   type ChartConfiguration,
   LinearScale,
   LineController,
   LineElement,
+  PieController,
   PointElement,
   Tooltip,
 } from "chart.js";
 
 // Só as peças que os gráficos usam: o resto do Chart.js fica fora do pedaço (tree-shaking).
 Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip);
+Chart.register(PieController, ArcElement);
 
 export type ChartHandle = { update: (config: ChartConfiguration) => void; destroy: () => void };
 /** O visual do tema que o canvas não lê do CSS: cores (tokens crus) e `prefers-reduced-motion`. */
-export type ChartLook = { reducedMotion: boolean; line: string; text: string; grid: string };
+export type ChartLook = { reducedMotion: boolean } & Record<
+  "line" | "text" | "grid" | "success" | "background",
+  string
+>;
 
 /** Desenha `config` no canvas (o `loadChartKit` já conferiu que há canvas 2D). */
 export function mountChart(canvas: HTMLCanvasElement, config: ChartConfiguration): ChartHandle {

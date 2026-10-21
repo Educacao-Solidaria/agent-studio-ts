@@ -12,6 +12,15 @@ describe("perfSample", () => {
     const expected = { at: 1000, model: "m", ttftMs: 200, tps: 50, estimated: false };
     expect(of(done(200), 1200)).toEqual(expected);
     expect(of(done(0), 500, 0, true)).toMatchObject({ ttftMs: 0, tps: 0, estimated: true });
+    const cached = perfSample({
+      at: 1,
+      model: "m",
+      ttft: done(9),
+      usage: { completionTokens: 1, estimated: false },
+      durationMs: 9,
+      cached: true,
+    });
+    expect(cached.cached).toBe(true); // o `metadata.cached` passa direto para a pizza
   });
 
   it("sem primeiro token não há TTFT nem taxa", () => {

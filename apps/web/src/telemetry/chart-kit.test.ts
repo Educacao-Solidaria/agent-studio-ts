@@ -10,9 +10,12 @@ const line = (data: number[], options = {}): ChartConfiguration => ({
 });
 
 describe("chart-kit", () => {
-  it("registra só as peças dos gráficos de linha", () => {
+  it("registra só as peças dos gráficos de linha e de pizza", () => {
     expect(Chart.registry.getController("line")).toBeDefined();
-    for (const type of ["bar", "pie", "doughnut", "radar"]) {
+    expect(Chart.registry.getController("pie")).toBeDefined();
+    expect(Chart.registry.getElement("arc")).toBeDefined();
+    // `doughnut` entra junto: o Chart.js registra a classe-mãe do `PieController` (mesmo código).
+    for (const type of ["bar", "radar", "polarArea", "scatter"]) {
       expect(() => Chart.registry.getController(type)).toThrow(/not a registered/);
     }
     expect(() => Chart.registry.getScale("time")).toThrow(/not a registered/);
