@@ -1,6 +1,7 @@
 import type { ChatMessage, MessageRole } from "../../../../src/types/domain.ts";
 import { datedFileName, downloadFile } from "../lib/download.ts";
 import { DEFAULT_LOCALE, EMPTY, formatDuration, formatNumber } from "../lib/format.ts";
+import { redactor } from "../lib/redact.ts";
 
 export type ExportFormat = "markdown" | "json";
 /** `timeZone` fixa o fuso dos horários do Markdown (teste); sem ele vale o do navegador. */
@@ -12,22 +13,6 @@ const ROLES: Record<MessageRole, string> = {
   assistant: "Assistente",
   tool: "Ferramenta",
 };
-
-// Formatos de chave conhecidos (OpenRouter `sk-or-v1-…`, OpenAI `sk-…`, Anthropic `sk-ant-…`) e o
-// valor de um `Authorization: Bearer …` colado de um curl.
-const SECRET = /\bsk-[\w-]{20,}|\bBearer\s+[\w.~+/-]{16,}=*/g;
-export const REDACTED = "[chave removida]";
-
-/** Troca o que tem forma de chave de API e conta as trocas: o arquivo diz quantas foram. */
-function redactor() {
-  let count = 0;
-  const redact = (text: string) =>
-    text.replace(SECRET, () => {
-      count++;
-      return REDACTED;
-    });
-  return { redact, count: () => count };
-}
 
 const isoTime = (ms: number) => {
   const date = new Date(ms);
