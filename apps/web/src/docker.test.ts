@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import dockerfile from "../../../Dockerfile?raw";
 import nginxConf from "../docker/nginx.conf?raw";
+import { OPENROUTER_MODELS_URL } from "./chat/model-pricing.ts";
 import { MAX_BODY_BYTES } from "./rag/index-document.ts";
 
 // Contratos da Fase 5 (§2 imagem, §5 mesma origem) conferidos no texto do Dockerfile e da config
@@ -124,6 +125,70 @@ describe("nginx do estúdio (contrato §5)", () => {
       "public, max-age=31536000, immutable",
     ]);
     expect(arg(locate("/")?.block, "add_header")).toEqual(["Cache-Control", "no-cache"]);
+  });
+});
+
+/** Os `add_header` do server: nome → [valor, flag]. */
+const headers = new Map(all("add_header").map(({ args: [name = "", ...rest] }) => [name, rest]));
+/** As diretivas da CSP, na ordem: [nome, fontes]. */
+const directives = (headers.get("Content-Security-Policy")?.[0] ?? "")
+  .split(";")
+  .map((directive) => directive.trim().split(/\s+/))
+  .map(([name = "", ...sources]) => [name, sources] as const);
+const csp = new Map(directives);
+
+describe("cabeçalhos de segurança (CSP, HSTS)", () => {
+  it("em toda resposta: `always` no server e o `merge` que os soma ao add_header das locations", () => {
+    // Lista, não mapa: nome repetido manda o cabeçalho duas vezes (do HSTS, o navegador usa o 1º).
+    expect(all("add_header").map(({ args }) => args[0])).toEqual([
+      "Content-Security-Policy",
+      "Strict-Transport-Security",
+      "X-Content-Type-Options",
+      "Referrer-Policy",
+      "Cross-Origin-Opener-Policy",
+      "Permissions-Policy",
+    ]);
+    for (const [name, [, flag]] of headers) expect(flag, name).toBe("always");
+    expect(arg(server, "add_header_inherit")).toEqual(["merge"]);
+    // Uma location com `add_header_inherit` próprio derrubaria nela os cabeçalhos do server.
+    expect(locations.filter(({ block }) => arg(block, "add_header_inherit"))).toEqual([]);
+  });
+
+  it("CSP: só a própria origem, sem eval nem script inline; de fora, só os preços da OpenRouter", () => {
+    // Diretiva repetida: o navegador usa a 1ª, e o mapa guardaria a última.
+    expect(csp.size).toBe(directives.length);
+    expect(csp.get("default-src")).toEqual(["'none'"]);
+    expect(csp.get("script-src")).toEqual(["'self'"]);
+    expect(csp.get("connect-src")).toEqual(["'self'", OPENROUTER_MODELS_URL]);
+    // Estas não herdam do default-src: sem elas, nada as limita.
+    for (const name of ["base-uri", "form-action", "frame-ancestors"]) {
+      expect(csp.get(name), name).toEqual(["'none'"]);
+    }
+    // Toda outra fonte (host, data:, blob:, curinga, 'unsafe-eval') pede medida e decisão novas.
+    const allowed: Record<string, string[]> = {
+      "style-src": ["'unsafe-inline'"],
+      "connect-src": [OPENROUTER_MODELS_URL],
+    };
+    for (const [name, sources] of directives) {
+      const known = ["'self'", "'none'", ...(allowed[name] ?? [])];
+      expect(
+        sources.filter((source) => !known.includes(source)),
+        name,
+      ).toEqual([]);
+    }
+  });
+
+  it("HSTS de um ano ou mais", () => {
+    const [hsts = ""] = headers.get("Strict-Transport-Security") ?? [];
+    expect(Number(/^max-age=(\d+)$/.exec(hsts)?.[1])).toBeGreaterThanOrEqual(31_536_000);
+  });
+
+  it("nosniff, referrer, COOP e permissões no valor exato: trocar pede decisão nova", () => {
+    const value = (name: string) => headers.get(name)?.[0];
+    expect(value("X-Content-Type-Options")).toBe("nosniff");
+    expect(value("Referrer-Policy")).toBe("no-referrer");
+    expect(value("Cross-Origin-Opener-Policy")).toBe("same-origin");
+    expect(value("Permissions-Policy")).toBe("camera=(), microphone=(), geolocation=()");
   });
 });
 
