@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { cn } from "../lib/cn.ts";
+import { retryImport } from "../lib/retry-import.ts";
 import type { Line, Tokenize } from "./highlight.ts";
 
 /** Linguagens com destaque e os nomes que o cercado do markdown pode trazer. Poucas de propósito:
@@ -32,7 +33,7 @@ export function grammarOf(info = ""): Grammar | undefined {
 type Engine = { tokenizerFor: (lang: Grammar) => Promise<Tokenize> };
 
 /** O Shiki vem sob demanda, no primeiro bloco com linguagem conhecida: fora do JS principal. */
-export const loadHighlighter = (): Promise<Engine> => import("./highlight.ts");
+export const loadHighlighter = retryImport((): Promise<Engine> => import("./highlight.ts"));
 
 export type CodeBlockProps = {
   code: string;

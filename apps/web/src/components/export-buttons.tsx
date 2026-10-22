@@ -8,14 +8,14 @@ export type ExportButtonsProps<F extends string> = {
   /** Formato → texto do botão, na ordem em que aparecem; o tipo exige um botão por formato. */
   formats: Readonly<Record<F, string>>;
   disabled: boolean;
-  /** Gera e baixa o arquivo; quem chama traz o serializador por `import()` aqui, no clique. */
+  /** Gera e baixa o arquivo; quem chama traz o serializador sob demanda aqui, no clique (por um
+   * carregador `retryImport`, que depois de uma falha de rede baixa o pedaço de novo). */
   save: (format: F) => Promise<void>;
 };
 
 /** Um botão por formato. Falha (pedaço que não baixou, navegador sem download) vira aviso; o
  * clique seguinte tenta de novo e, dando certo, limpa o aviso. O aviso manda recarregar se
- * persistir: o Chromium guarda o `import()` que falhou na rede e não busca o pedaço de novo no
- * mesmo documento, nem com a rede de volta (medido no 148). */
+ * persistir: é a saída para o que a nova tentativa não resolve (pedaço que sumiu num deploy). */
 export function ExportButtons<F extends string>(props: ExportButtonsProps<F>) {
   const { label, formats, disabled, save } = props;
   const [failed, setFailed] = useState(false);

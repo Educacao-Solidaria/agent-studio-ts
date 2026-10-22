@@ -63,7 +63,9 @@ describe("Organizar", () => {
     await user.click(screen.getByRole("button", { name: "Organizar" }));
 
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toBe("Não foi possível organizar. Tente de novo.");
+    expect(alert.textContent).toBe(
+      "Não foi possível organizar. Tente de novo; se o erro persistir, recarregue a página.",
+    );
     expect(positions()).toEqual(nodes.map((node) => node.position));
     expect(undo().disabled).toBe(true);
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Organizar" }).disabled).toBe(

@@ -9,21 +9,23 @@ import {
   type ThemedToken,
   type ThemeRegistration,
 } from "@shikijs/primitive";
+import { retryImport } from "../lib/retry-import.ts";
 import type { Grammar } from "./code-block.tsx";
 
 /** Este módulo inteiro vem sob demanda (import() no CodeBlock), e cada gramática TextMate é um
- * chunk próprio: só baixa a de uma linguagem que aparecer num bloco. */
+ * chunk próprio: só baixa a de uma linguagem que aparecer num bloco (e, se falhar, o próximo bloco
+ * dela baixa de novo). */
 const GRAMMARS: Record<Grammar, () => Promise<{ default: LanguageRegistration[] }>> = {
-  typescript: () => import("@shikijs/langs/typescript"),
-  javascript: () => import("@shikijs/langs/javascript"),
-  tsx: () => import("@shikijs/langs/tsx"),
-  json: () => import("@shikijs/langs/json"),
-  python: () => import("@shikijs/langs/python"),
-  shellscript: () => import("@shikijs/langs/shellscript"),
-  go: () => import("@shikijs/langs/go"),
-  rust: () => import("@shikijs/langs/rust"),
-  sql: () => import("@shikijs/langs/sql"),
-  yaml: () => import("@shikijs/langs/yaml"),
+  typescript: retryImport(() => import("@shikijs/langs/typescript")),
+  javascript: retryImport(() => import("@shikijs/langs/javascript")),
+  tsx: retryImport(() => import("@shikijs/langs/tsx")),
+  json: retryImport(() => import("@shikijs/langs/json")),
+  python: retryImport(() => import("@shikijs/langs/python")),
+  shellscript: retryImport(() => import("@shikijs/langs/shellscript")),
+  go: retryImport(() => import("@shikijs/langs/go")),
+  rust: retryImport(() => import("@shikijs/langs/rust")),
+  sql: retryImport(() => import("@shikijs/langs/sql")),
+  yaml: retryImport(() => import("@shikijs/langs/yaml")),
 };
 
 /** Cor → escopos TextMate. A cor é uma variável CSS (`.syntax` no globals.css): claro e escuro

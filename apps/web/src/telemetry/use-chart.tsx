@@ -1,15 +1,17 @@
 import type { ChartConfiguration } from "chart.js";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { retryImport } from "../lib/retry-import.ts";
 import type { ChartHandle, ChartLook } from "./chart-kit.ts";
 
 export type ChartKit = typeof import("./chart-kit.ts");
+const importChartKit = retryImport((): Promise<ChartKit> => import("./chart-kit.ts"));
 
 /** O Chart.js vem sob demanda, quando um gráfico monta: fora do bundle principal. */
 export async function loadChartKit(): Promise<ChartKit> {
   // Sem canvas 2D o Chart.js só escreveria um erro no console e não desenharia: falha como a rede.
   const context = document.createElement("canvas").getContext("2d");
   if (!context) throw new Error("canvas 2D indisponível");
-  return import("./chart-kit.ts");
+  return importChartKit();
 }
 
 /** O pedaço do Chart.js para os gráficos de um painel, baixado só quando há o que desenhar

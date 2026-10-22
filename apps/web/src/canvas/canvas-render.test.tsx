@@ -41,9 +41,10 @@ vi.mock("./canvas-toolbar.tsx", async (original) => {
   const real = await original<typeof import("./canvas-toolbar.tsx")>();
   return { ...real, CanvasToolbar: counting(() => "toolbar", real.CanvasToolbar) };
 });
-vi.mock("./node-palette.tsx", async (original) => {
-  const real = await original<typeof import("./node-palette.tsx")>();
-  return { ...real, NodePalette: counting(() => "palette", real.NodePalette) };
+// A paleta em si vem sob demanda e só monta quando abre: conta-se o que o canvas memoiza.
+vi.mock("./lazy-dialogs.tsx", async (original) => {
+  const real = await original<typeof import("./lazy-dialogs.tsx")>();
+  return { ...real, LazyNodePalette: counting(() => "palette", real.LazyNodePalette) };
 });
 vi.mock("./node-drawer.tsx", async (original) => {
   const real = await original<typeof import("./node-drawer.tsx")>();
