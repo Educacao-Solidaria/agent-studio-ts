@@ -23,7 +23,7 @@ FROM nginxinc/nginx-unprivileged:1.30.6-alpine3.24-slim@sha256:5d8bb9437d74a600e
 COPY apps/web/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /repo/apps/web/dist /srv/studio
 # O mesmo uid da imagem base; explícito para o contrato não depender dela.
-USER 0
+USER 101
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --start-interval=1s \
     CMD ["wget", "-q", "-T", "2", "-O", "/dev/null", "http://127.0.0.1:3000/"]
