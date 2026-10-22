@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:image": "playwright test --config playwright.image.config.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build --quiet"
   },

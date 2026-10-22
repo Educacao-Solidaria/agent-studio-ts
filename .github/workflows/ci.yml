@@ -55,6 +55,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      # O mesmo Studio na imagem de produção (cache do Buildx do job `image`), sob os cabeçalhos do
+      # nginx: e2e/image reprova violação de CSP no console (o playwright.image.config sobe o container).
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          provenance: false
+          tags: educacao-solidaria/agent-studio:dev
+          cache-from: type=gha
+      - run: pnpm test:e2e:image
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

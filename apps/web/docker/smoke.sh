@@ -22,6 +22,10 @@ lacks() { [[ $1 != *"$2"* ]] || { echo "      com [$2]" && return 1; }; }
 curl() { command curl -m 10 "$@"; }
 status() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
 headers() { curl -s -D - -o /dev/null "$@" | tr -d '\r'; }
+# Só os cabeçalhos de segurança do nginx.conf, na ordem em que vêm.
+security() {
+  headers "$@" | grep -iE '^(content-security-policy|strict-transport-security|x-content-type-options|referrer-policy|cross-origin-opener-policy|permissions-policy):' || true
+}
 # O nginx do estúdio resolve o backend de novo a cada `valid` (10 s): espera ele aparecer.
 eventually() { # eventually <caminho> <corpo esperado> [args do curl...]
   local path=$1 want=$2
@@ -58,7 +62,7 @@ context() {
 }
 
 image() {
-  local img=$1 net=studio-smoke dir size index js
+  local img=$1 net=studio-smoke dir size index js secure
   dir=$(mktemp -d)
   trap 'docker rm -f studio backend > /dev/null 2>&1; docker network rm studio-smoke > /dev/null 2>&1' EXIT
   check "usuário da imagem: 101" is "$(docker image inspect -f '{{.Config.User}}' "$img")" 101
@@ -98,6 +102,14 @@ image() {
   check "asset que falta: 404, sem cair no SPA" is "$(status "$base/assets/nao-existe-0.js")" 404
   check "asset que falta: sem cache longo" lacks "$(headers "$base/assets/nao-existe-0.js")" immutable
   check "nginx sem versão no Server" has "$(headers "$base/")" 'Server: nginx'$'\n'
+  # Os mesmos cabeçalhos de segurança em toda resposta, também no erro e no proxy: prova o `always`
+  # e o `add_header_inherit merge` no nginx da imagem.
+  secure=$(security "$base/")
+  check "cabeçalhos de segurança no index.html (6)" is "$(wc -l <<< "$secure")" 6
+  check "CSP: script só da origem" has "$secure" "script-src 'self';"
+  for path in "$js" /fluxos/1 /assets/nao-existe-0.js; do
+    check "os mesmos cabeçalhos em $path" is "$(security "$base$path")" "$secure"
+  done
 
   # O build abre no Chrome do runner: o React monta dentro do #root e a tela de erro não aparece.
   local dom
@@ -110,11 +122,13 @@ image() {
   for path in /health/gateway /health/rag /health/cache /api/v1/index /v1/models; do
     check "sem backend: $path = 502" is "$(status "$base$path")" 502
   done
+  check "os mesmos cabeçalhos no 502" is "$(security "$base/health/rag")" "$secure"
   # Teto do RAG (2 MiB): o corpo exato passa do nginx (502 sem backend); 1 byte a mais é 413.
   head -c 2097152 /dev/zero > "$dir/body"
   check "upload de 2 MiB passa do nginx" is "$(status --data-binary @"$dir/body" "$base/api/v1/index")" 502
   printf x >> "$dir/body"
   check "upload acima de 2 MiB: 413" is "$(status --data-binary @"$dir/body" "$base/api/v1/index")" 413
+  check "os mesmos cabeçalhos no 413" is "$(security --data-binary @"$dir/body" "$base/api/v1/index")" "$secure"
 
   # Backend falso: a própria imagem com um server que devolve "host método uri" nas portas do
   # contrato, sob os nomes de DNS do compose. Prova o mapa do §5 sem reiniciar o estúdio.
