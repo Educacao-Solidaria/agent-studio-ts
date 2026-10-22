@@ -7,7 +7,7 @@ const WCAG_21_AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 const AXE = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const THEMES = ["light", "dark"] as const;
 const STORY_FILES = readdirSync(new URL("../src", import.meta.url), { recursive: true })
-  .map(String)
+  .map((file) => String(file).replaceAll("\\", "/")) // no Windows vem com barra invertida
   .filter((file) => file.endsWith(".stories.tsx"));
 
 type Catalog = { storyIds?: string[]; showStory(id: string): void };
