@@ -1,6 +1,5 @@
 # Contexto do build da imagem do estúdio (contratos da Fase 5, §2): tudo fica de fora e só volta
 # o que o `vite build` usa. Dentro do que volta, de novo fora: dependências, builds e .env.
-*
 !package.json
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
