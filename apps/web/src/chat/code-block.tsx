@@ -65,6 +65,8 @@ export function CodeBlock({ code, lang, className, load = loadHighlighter }: Cod
   const highlighted = useMemo(() => tokenize?.(text), [tokenize, text]);
   return (
     <pre
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: linha longa rola e precisa do Tab (WCAG 2.1.1)
+      tabIndex={0}
       className={cn("syntax overflow-x-auto rounded-md bg-muted p-3 font-mono text-sm", className)}
       data-lang={grammar}
     >

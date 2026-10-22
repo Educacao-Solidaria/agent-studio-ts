@@ -12,9 +12,18 @@ const STORY_FILES = readdirSync(new URL("../src", import.meta.url), { recursive:
 
 type Catalog = { storyIds?: string[]; showStory(id: string): void };
 
+// Story cujo estado final vem depois de uma pausa sem mudança no DOM (o backoff de 250 a 500 ms da
+// sondagem, o import do Shiki): o axe espera por ele, senão analisaria só o estado inicial.
+// ponytail: lista à mão; story nova que muda por timer ou import entra aqui.
+const READY: Record<string, string> = {
+  "chat/code-block.stories.tsx › Highlighted": "pre[data-lang] span[style]",
+  "components/offline-banner.stories.tsx › ServiceDown": "text=Serviço indisponível",
+  "components/service-status.stories.tsx › CacheDown": 'text="Indisponível"',
+};
+
 /** Espera a página parar de mudar: 300 ms sem nó ou atributo novo no DOM (o pedaço sob demanda,
- * como o do Chart.js, chega antes da análise), com teto de 5 s para o que muda sem parar
- * (execução ao vivo, lista recebendo mensagens). Texto que só cresce não segura a espera. */
+ * como o do Chart.js, costuma chegar antes), com teto de 5 s se ela nunca parar. Texto que só
+ * cresce não segura a espera; o que chega depois de uma pausa maior está em READY. */
 const settle = (page: Page) =>
   page.evaluate(
     () =>
@@ -63,11 +72,15 @@ for (const theme of THEMES) {
       .then((handle) => handle.jsonValue());
     // Arquivo de story que não carregou passaria calado: cada um do disco tem de estar na página.
     expect(new Set(ids?.map((id) => id.split(" › ")[0]))).toEqual(new Set(STORY_FILES));
+    // Story de READY renomeada perderia a espera calada.
+    expect(ids).toEqual(expect.arrayContaining(Object.keys(READY)));
     await page.addScriptTag({ path: AXE });
     for (const id of ids ?? []) {
       await page.evaluate((story) => (window as unknown as Catalog).showStory(story), id);
       await expect(page.locator("#root > *").first(), id).toBeAttached();
       await expect(page.locator("html"), id).toHaveCSS("color-scheme", theme); // o tema pegou
+      const ready = READY[id];
+      if (ready) await expect(page.locator(ready).first(), id).toBeVisible();
       expect.soft(await violations(page), id).toEqual([]);
     }
   });
@@ -84,6 +97,10 @@ for (const theme of THEMES) {
     await expect(page.locator("html")).toHaveCSS("color-scheme", theme);
     await page.addScriptTag({ path: AXE });
     expect.soft(await violations(page), "canvas").toEqual([]);
+    // O axe deixa a atribuição como "incompleto" (fundo translúcido): o #999 do React Flow não pode
+    // voltar; o contraste do token que entra no lugar é o do tokens.test.
+    const attribution = page.locator(".react-flow__attribution a");
+    await expect(attribution).not.toHaveCSS("color", "rgb(153, 153, 153)");
     await page.getByRole("button", { name: "Atalhos do teclado" }).click();
     expect.soft(await violations(page), "atalhos").toEqual([]);
     // Nó selecionado sobe de camada: só assim o axe mede o contraste dos selos dele.
