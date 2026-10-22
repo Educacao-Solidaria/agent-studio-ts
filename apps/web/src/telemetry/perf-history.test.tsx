@@ -2,6 +2,7 @@ import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { Chart } from "chart.js";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeCanvas2d } from "../test/canvas.ts";
 import { CachePie } from "./cache-pie.tsx";
@@ -48,6 +49,11 @@ describe("createPerfHistory", () => {
     for (const i of [4, 7]) history.push(sample(i)); // dois miss: a 0, o único hit, sai da memória
     expect(ats(history)).toEqual([4, 7]);
     expect(history.snapshot().cache).toEqual({ hits: 1, misses: 2 });
+    // A foto entregue não muda depois: os gráficos comparam a lista e a conta por identidade.
+    expect([empty, first]).toMatchObject([
+      { samples: [], cache: { hits: 0, misses: 0 } },
+      { samples: [{ at: 0 }], cache: { hits: 1, misses: 0 } },
+    ]);
   });
 
   it("limite 0 guarda só a conta; limite fora de inteiro ≥ 0 é erro, nunca sem teto", () => {
@@ -142,5 +148,12 @@ describe("usePerfHistory com os gráficos", () => {
     const pieUpdate = vi.spyOn(charts()[2] as Chart, "update");
     arrive(sample(2_501)); // sem dado de cache: as linhas andam e a pizza nem redesenha
     expect(pieUpdate).not.toHaveBeenCalled();
+  });
+
+  it("no servidor (renderToStaticMarkup) usa a mesma foto", () => {
+    const history = createPerfHistory();
+    history.push(sample(0)); // hit
+    const html = renderToStaticMarkup(<Panel history={history} />);
+    expect(html).toContain('aria-label="100% das respostas vieram do cache (1 de 1)"');
   });
 });
