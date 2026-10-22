@@ -36,7 +36,9 @@ jobs:
 
   # Playwright num job à parte: o navegador (e as libs do sistema) só aqui; o `web` segue leve.
   e2e:
-    runs-on: ubuntu-latest
+    # O ubuntu-latest virou 26.04 (out/2026) e o Playwright 1.60.0 (o Chromium 1223 do cache local)
+    # não instala nele ("does not support chromium on ubuntu26.04-x64"). Subir o Playwright é à parte.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
