@@ -3,19 +3,17 @@ import { useMemo } from "react";
 import { cn } from "../lib/cn.ts";
 import { formatNumber } from "../lib/format.ts";
 import type { ChartLook } from "./chart-kit.ts";
-import type { PerfSample } from "./perf-samples.ts";
+import type { CacheCounts } from "./perf-history.ts";
 import { ChartCanvas, type ChartKit, useChartKit, useChartLook } from "./use-chart.tsx";
 
 export type Slice = { name: string; count: number; percent: number };
 
 /**
- * Hit × miss das respostas com dado de cache (`cached` do `metadata`); as sem `metadata` não
- * entram. Porcentagem inteira, e a de miss é o que falta para 100 (arredondar as duas pode dar
- * 101%). Nenhuma resposta com o dado = `undefined`: estado vazio, nada de 0/0.
+ * As fatias de hit × miss (a conta vem do histórico, ou do `cacheCounts` de uma lista).
+ * Porcentagem inteira, e a de miss é o que falta para 100 (arredondar as duas pode dar 101%).
+ * Nenhuma resposta com o dado = `undefined`: estado vazio, nada de 0/0.
  */
-export function cacheSlices(samples: readonly PerfSample[]): [Slice, Slice] | undefined {
-  const hits = samples.filter((sample) => sample.cached === true).length;
-  const misses = samples.filter((sample) => sample.cached === false).length;
+export function cacheSlices({ hits, misses }: CacheCounts): [Slice, Slice] | undefined {
   if (!hits && !misses) return undefined;
   const share = Math.round((hits / (hits + misses)) * 100);
   return [
@@ -26,7 +24,9 @@ export function cacheSlices(samples: readonly PerfSample[]): [Slice, Slice] | un
 
 const plural = (count: number) => (count === 1 ? "resposta" : "respostas");
 const percent = (slice: Slice) => formatNumber(slice.percent / 100, { style: "percent" });
-const describe = (slice: Slice) => `${percent(slice)} · ${slice.count} ${plural(slice.count)}`;
+// A conta é da sessão inteira e passa de mil: "1.667", não "1667".
+const describe = (slice: Slice) =>
+  `${percent(slice)} · ${formatNumber(slice.count)} ${plural(slice.count)}`;
 
 /** A pizza no tema atual; sem animação com `prefers-reduced-motion`. */
 export function pieConfig(slices: [Slice, Slice], look: ChartLook): ChartConfiguration<"pie"> {
@@ -55,14 +55,15 @@ export function pieConfig(slices: [Slice, Slice], look: ChartLook): ChartConfigu
 }
 
 const SWATCHES = ["bg-success", "bg-muted-foreground"];
-export type CachePieProps = { samples: readonly PerfSample[]; load?: () => Promise<ChartKit> };
+export type CachePieProps = { counts: CacheCounts; load?: () => Promise<ChartKit> };
 
 /**
- * Quanto das respostas o cache semântico serviu sem chamar o modelo. A cor nunca vai sozinha: a
- * legenda diz nome, porcentagem e contagem de cada fatia (e fica mesmo se o gráfico não carregar).
+ * Quanto das respostas da sessão o cache semântico serviu sem chamar o modelo: a conta do
+ * histórico inclui as que a poda já tirou da memória. A cor nunca vai sozinha: a legenda diz
+ * nome, porcentagem e contagem de cada fatia (e fica mesmo se o gráfico não carregar).
  */
-export function CachePie({ samples, load }: CachePieProps) {
-  const slices = useMemo(() => cacheSlices(samples), [samples]);
+export function CachePie({ counts, load }: CachePieProps) {
+  const slices = useMemo(() => cacheSlices(counts), [counts]);
   const { kit, failed } = useChartKit(load, slices !== undefined);
   const look = useChartLook();
   const config = useMemo(() => slices && pieConfig(slices, look), [slices, look]);
@@ -70,7 +71,8 @@ export function CachePie({ samples, load }: CachePieProps) {
     return <p className="text-muted-foreground text-sm">Sem respostas com dado de cache ainda.</p>;
   }
   const [hit, miss] = slices;
-  const label = `${percent(hit)} das respostas vieram do cache (${hit.count} de ${hit.count + miss.count})`;
+  const fraction = `${formatNumber(hit.count)} de ${formatNumber(hit.count + miss.count)}`;
+  const label = `${percent(hit)} das respostas vieram do cache (${fraction})`;
   return (
     <figure className="grid gap-2 text-sm">
       <figcaption className="font-medium">Cache semântico: hit × miss</figcaption>

@@ -20,7 +20,7 @@ export type PerfSample = {
  * A amostra de uma resposta a partir do que o chat já mede: o TTFT do `useTtft`, os tokens de
  * saída do `consumption` (contador de tokens) e `durationMs`, do envio ao fim, no mesmo relógio
  * do TTFT (`performance.now()`); `cached` é o do `metadata` (o mesmo que o contador lê). O painel
- * de chat guarda as amostras e passa aos gráficos.
+ * de chat guarda as amostras no `createPerfHistory` (com teto) e passa a foto aos gráficos.
  */
 export function perfSample(input: {
   at: number;

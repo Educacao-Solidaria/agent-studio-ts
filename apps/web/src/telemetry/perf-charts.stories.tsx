@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
-import { PERF_WINDOW, PerfCharts } from "./perf-charts.tsx";
+import { PerfCharts } from "./perf-charts.tsx";
+import { createPerfHistory, usePerfHistory } from "./perf-history.ts";
 import type { PerfSample } from "./perf-samples.ts";
 
 // Valores fixos (sem Math.random): a história é a mesma a cada abertura.
@@ -25,18 +26,17 @@ type Story = StoryObj<typeof meta>;
 /** As últimas respostas; a 8ª parou antes do primeiro token (buraco nas duas linhas). */
 export const Recent: Story = {};
 
-/** Uma resposta a cada 1,5 s: a janela anda e os pontos deslizam (sem animar com reduced-motion). */
+/** Uma resposta a cada 1,5 s no histórico com teto: a janela anda e os pontos deslizam (sem
+ * animar com reduced-motion). */
 export const Live: Story = { render: () => <LiveCharts /> };
 
 function LiveCharts() {
-  const [samples, setSamples] = useState<PerfSample[]>([]);
+  const [history] = useState(() => createPerfHistory());
+  const { samples } = usePerfHistory(history);
   useEffect(() => {
     let i = 0;
-    const timer = setInterval(() => {
-      const item = { ...sample(i++), at: Date.now() };
-      setSamples((all) => [...all, item].slice(-PERF_WINDOW));
-    }, 1500);
+    const timer = setInterval(() => history.push({ ...sample(i++), at: Date.now() }), 1500);
     return () => clearInterval(timer);
-  }, []);
+  }, [history]);
   return <PerfCharts samples={samples} />;
 }
