@@ -19,10 +19,10 @@ it("com ele, o contrato SSE nasce e valida sem `new Function`, que a CSP do ngin
   });
   vi.stubGlobal("Function", spy);
   await import("./zod-jitless.ts");
+  expect(config().jitless).toBe(true); // já na avaliação do módulo, não depois
   const { StreamChunkSchema } = await import("../../../../src/types/sse.ts");
   const chunk = { id: "c1", model: "m", delta_content: "olá", is_last: false };
   expect(StreamChunkSchema.parse(chunk)).toEqual(chunk);
   expect(StreamChunkSchema.safeParse({ ...chunk, is_last: "não" }).success).toBe(false);
   expect(built).not.toHaveBeenCalled();
-  expect(config().jitless).toBe(true);
 });

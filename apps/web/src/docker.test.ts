@@ -139,7 +139,8 @@ const csp = new Map(directives);
 
 describe("cabeçalhos de segurança (CSP, HSTS)", () => {
   it("em toda resposta: `always` no server e o `merge` que os soma ao add_header das locations", () => {
-    expect([...headers.keys()]).toEqual([
+    // Lista, não mapa: nome repetido manda o cabeçalho duas vezes (do HSTS, o navegador usa o 1º).
+    expect(all("add_header").map(({ args }) => args[0])).toEqual([
       "Content-Security-Policy",
       "Strict-Transport-Security",
       "X-Content-Type-Options",
@@ -180,6 +181,14 @@ describe("cabeçalhos de segurança (CSP, HSTS)", () => {
   it("HSTS de um ano ou mais", () => {
     const [hsts = ""] = headers.get("Strict-Transport-Security") ?? [];
     expect(Number(/^max-age=(\d+)$/.exec(hsts)?.[1])).toBeGreaterThanOrEqual(31_536_000);
+  });
+
+  it("nosniff, referrer, COOP e permissões no valor exato: trocar pede decisão nova", () => {
+    const value = (name: string) => headers.get(name)?.[0];
+    expect(value("X-Content-Type-Options")).toBe("nosniff");
+    expect(value("Referrer-Policy")).toBe("no-referrer");
+    expect(value("Cross-Origin-Opener-Policy")).toBe("same-origin");
+    expect(value("Permissions-Policy")).toBe("camera=(), microphone=(), geolocation=()");
   });
 });
 
