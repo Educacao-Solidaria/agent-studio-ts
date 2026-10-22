@@ -1,4 +1,5 @@
 import type * as Dagre from "@dagrejs/dagre";
+import { retryImport } from "../lib/retry-import.ts";
 import type { StudioFlowEdge, StudioFlowNode } from "./flow.ts";
 
 /** Tamanho de um nó ainda sem medida: o DefaultNode tem `min-w-44` (176 px). */
@@ -8,7 +9,7 @@ export const FALLBACK_SIZE = { width: 176, height: 64 };
 const GRAPH = { rankdir: "LR", nodesep: 40, ranksep: 96 } as const;
 
 /** O dagre vem sob demanda, num chunk à parte: só quem clica em Organizar o baixa. */
-export const loadDagre = () => import("@dagrejs/dagre");
+export const loadDagre = retryImport(() => import("@dagrejs/dagre"));
 
 const sizeOf = ({ measured }: StudioFlowNode) => ({
   // `||`: medida 0 (ou NaN) é nó ainda não desenhado, não um nó de tamanho zero.

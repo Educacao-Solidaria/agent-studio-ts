@@ -171,7 +171,7 @@ describe("Exportar SVG no canvas", () => {
     renderFlowInstance(<StudioCanvas initialNodes={nodes} />);
     fireEvent.click(exportButton());
     expect((await screen.findByRole("alert")).textContent).toBe(
-      "Não foi possível exportar. Tente de novo.",
+      "Não foi possível exportar. Tente de novo; se o erro persistir, recarregue a página.",
     );
     expect(downloads).toHaveLength(0);
 

@@ -1,10 +1,13 @@
 import { ExportButtons } from "../components/export-buttons.tsx";
+import { retryImport } from "../lib/retry-import.ts";
 import type { PerfSample } from "./perf-samples.ts";
 import type { TelemetryFormat } from "./telemetry-file.ts";
 
 type TelemetryFile = typeof import("./telemetry-file.ts");
 /** O serializador vem sob demanda, no primeiro clique: fora do bundle principal. */
-export const loadTelemetryFile = (): Promise<TelemetryFile> => import("./telemetry-file.ts");
+export const loadTelemetryFile = retryImport(
+  (): Promise<TelemetryFile> => import("./telemetry-file.ts"),
+);
 
 export type ExportTelemetryProps = {
   samples: readonly PerfSample[];

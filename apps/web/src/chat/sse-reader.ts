@@ -1,4 +1,5 @@
 import type { SSEEvent } from "../../../../src/types/sse.ts";
+import { retryImport } from "../lib/retry-import.ts";
 
 /**
  * Pedido que abre o stream. O corpo é texto, não stream: a reconexão manda o mesmo corpo de novo.
@@ -116,10 +117,12 @@ export function createSSEParser({ lastEventId = "", maxEventLength = 1 << 20 } =
   return { push, state };
 }
 
-/** Schemas zod do contrato, sob demanda: só o zod pesa ~89 kB (25 kB gzip) e o JS principal já
- * passa do aviso de 500 kB do Vite. O chunk vem no primeiro stream e fica em cache. */
+/** Schemas zod do contrato, sob demanda: só o zod pesa ~89 kB (25 kB gzip) e levaria o JS
+ * principal acima do aviso de 500 kB do Vite. O chunk vem no primeiro stream e fica em cache; se
+ * não baixar, o stream seguinte tenta de novo. */
+const importContract = retryImport(() => import("../../../../src/types/sse.ts"));
 const loadSchemas = () =>
-  import("../../../../src/types/sse.ts").then(
+  importContract().then(
     (contract) =>
       ({
         chunk: contract.StreamChunkSchema,

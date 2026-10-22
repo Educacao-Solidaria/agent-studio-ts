@@ -33,8 +33,8 @@ import {
   toFlowNode,
 } from "./flow.ts";
 import { FlowEdge } from "./flow-edge.tsx";
+import { LazyNodePalette } from "./lazy-dialogs.tsx";
 import { NodeDrawer, sameDrawerProps } from "./node-drawer.tsx";
-import { NodePalette } from "./node-palette.tsx";
 import {
   createStatusStore,
   type ExecutionSource,
@@ -79,7 +79,7 @@ const miniMapColor = (node: StudioFlowNode) => STATE_COLORS[node.data.state];
 // O canvas renderiza a cada quadro de arraste (os nós vivem aqui). Barra, paleta e painel não
 // dependem da posição dos nós: com props estáveis, o memo os deixa parados durante o arraste.
 const Toolbar = memo(CanvasToolbar);
-const Palette = memo(NodePalette);
+const Palette = memo(LazyNodePalette); // a paleta em si vem sob demanda (lazy-dialogs.tsx)
 const Drawer = memo(NodeDrawer, sameDrawerProps);
 
 /** Nó do mini-mapa com a cor da execução ao vivo; antes dela, a do contrato (`miniMapColor`). */

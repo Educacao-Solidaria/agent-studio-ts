@@ -4,6 +4,7 @@ import { Icon, type IconName } from "../components/icons.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { popoverClass } from "../components/ui/overlay.ts";
 import { cn } from "../lib/cn.ts";
+import { retryImport } from "../lib/retry-import.ts";
 import { layoutNodes, loadDagre } from "./auto-layout.ts";
 import { FIT_VIEW, type StudioFlowEdge, type StudioFlowNode } from "./flow.ts";
 import { useStatusStore } from "./node-status.ts";
@@ -120,12 +121,14 @@ function OrganizeButton() {
       </Button>
       {status === "failed" && (
         <p role="alert" className="self-center text-danger text-sm">
-          Não foi possível organizar. Tente de novo.
+          Não foi possível organizar. Tente de novo; se o erro persistir, recarregue a página.
         </p>
       )}
     </>
   );
 }
+
+const loadExportSvg = retryImport(() => import("./export-svg.ts"));
 
 /**
  * Exportar: baixa o desenho do fluxo como SVG vetorial (nítido em qualquer tamanho), sem os
@@ -139,7 +142,7 @@ function ExportButton() {
   const [failed, setFailed] = useState(false);
   const exportSvg = async () => {
     try {
-      const { exportFlowSvg } = await import("./export-svg.ts");
+      const { exportFlowSvg } = await loadExportSvg();
       exportFlowSvg(flow, statuses, store.getState().domNode ?? document.documentElement);
       setFailed(false);
     } catch {
@@ -160,7 +163,7 @@ function ExportButton() {
       </Button>
       {failed && (
         <p role="alert" className="self-center text-danger text-sm">
-          Não foi possível exportar. Tente de novo.
+          Não foi possível exportar. Tente de novo; se o erro persistir, recarregue a página.
         </p>
       )}
     </>

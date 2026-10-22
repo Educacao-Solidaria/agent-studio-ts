@@ -1,10 +1,11 @@
 import type { ChatMessage } from "../../../../src/types/domain.ts";
 import { ExportButtons } from "../components/export-buttons.tsx";
+import { retryImport } from "../lib/retry-import.ts";
 import type { ExportFormat } from "./chat-file.ts";
 
 type ChatFileModule = typeof import("./chat-file.ts");
 /** O serializador vem sob demanda, no primeiro clique: fora do bundle principal. */
-export const loadChatFile = (): Promise<ChatFileModule> => import("./chat-file.ts");
+export const loadChatFile = retryImport((): Promise<ChatFileModule> => import("./chat-file.ts"));
 
 export type ExportChatProps = {
   messages: readonly ChatMessage[];

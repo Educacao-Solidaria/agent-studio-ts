@@ -1,9 +1,10 @@
 import { act, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { renderFlowInstance } from "../test/flow.tsx";
 import type { StudioEdge, StudioNode } from "./domain.ts";
+import { loadCanvasDialogs } from "./lazy-dialogs.tsx";
 import { StudioCanvas } from "./studio-canvas.tsx";
-import { loadTemplateDialog, TemplatePicker } from "./template-picker.tsx";
+import { TemplatePicker } from "./template-picker.tsx";
 import { FLOW_TEMPLATES } from "./templates.ts";
 
 const nodes: StudioNode[] = [
@@ -34,6 +35,8 @@ const rag = {
 };
 
 describe("Modelos", () => {
+  beforeAll(() => loadCanvasDialogs()); // o primeiro import() do arquivo fora do prazo dos findBy
+
   it("sem alterações carrega direto (uma cópia), uma entrada do desfazer por carga", async () => {
     const { user, flow, ids, button, pick } = setup();
     await pick(/^RAG simples/);
@@ -95,18 +98,18 @@ describe("Modelos", () => {
 
   it("falha ao baixar o diálogo vira aviso; o próximo clique tenta de novo", async () => {
     const load = vi
-      .fn<typeof loadTemplateDialog>()
+      .fn<typeof loadCanvasDialogs>()
       .mockRejectedValueOnce(new TypeError("Failed to fetch dynamically imported module"))
-      .mockImplementationOnce(loadTemplateDialog);
+      .mockImplementationOnce(loadCanvasDialogs);
     const { user } = renderFlowInstance(<TemplatePicker load={load} />);
     const open = () => user.click(screen.getByRole("button", { name: "Modelos" }));
     await open();
     expect((await screen.findByRole("alert")).textContent).toBe(
-      "Não foi possível abrir os modelos. Tente de novo.",
+      "Não foi possível abrir os modelos. Tente de novo; se o erro persistir, recarregue a página.",
     );
 
     await open();
     expect(await screen.findByRole("button", { name: /^Agente autônomo com tools/ })).toBeDefined();
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("alert", { hidden: true })).toBeNull(); // o Dialog esconde o resto
   });
 });

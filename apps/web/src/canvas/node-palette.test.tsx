@@ -1,8 +1,9 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { renderFlowInstance } from "../test/flow.tsx";
 import { FALLBACK_SIZE } from "./auto-layout.ts";
 import type { StudioNode } from "./domain.ts";
+import { loadCanvasDialogs } from "./lazy-dialogs.tsx";
 import { matchNodeTypes } from "./node-palette.tsx";
 import { StudioCanvas } from "./studio-canvas.tsx";
 
@@ -14,7 +15,9 @@ function setup() {
   const result = renderFlowInstance(<StudioCanvas initialNodes={nodes} />);
   const palette = () => screen.queryByRole("dialog", { name: "Adicionar nó" });
   const inPalette = () => within(palette() as HTMLElement);
-  return { ...result, palette, inPalette };
+  // A paleta vem sob demanda: abre quando o pedaço chega, não no mesmo render do pedido.
+  const opened = () => screen.findByRole("dialog", { name: "Adicionar nó" });
+  return { ...result, palette, inPalette, opened };
 }
 
 describe("matchNodeTypes", () => {
@@ -31,8 +34,10 @@ describe("matchNodeTypes", () => {
 });
 
 describe("NodePalette", () => {
+  beforeAll(() => loadCanvasDialogs()); // o primeiro import() do arquivo fora do prazo dos findBy
+
   it("duplo clique no fundo abre a paleta sem zoom; Enter insere no ponto e Ctrl+Z desfaz", async () => {
-    const { user, flow, palette, inPalette } = setup();
+    const { user, flow, palette, inPalette, opened } = setup();
     const zoom = flow.current.getZoom();
     const pane = document.querySelector(".react-flow__pane") as Element;
     fireEvent.doubleClick(pane, { clientX: 300, clientY: 200 });
@@ -40,6 +45,7 @@ describe("NodePalette", () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(flow.current.getZoom()).toBe(zoom);
 
+    await opened();
     const search = inPalette().getByRole("combobox", { name: "Buscar tipo de nó" });
     expect(document.activeElement).toBe(search);
     await user.type(search, "aval");
@@ -64,9 +70,10 @@ describe("NodePalette", () => {
   });
 
   it("pela barra: setas dão a volta, teclas do canvas não vazam e Esc fecha sem inserir", async () => {
-    const { user, flow, palette, inPalette } = setup();
+    const { user, flow, palette, inPalette, opened } = setup();
     const button = screen.getByRole("button", { name: "Adicionar nó" });
     await user.click(button);
+    await opened();
     const search = inPalette().getByRole("combobox");
     const active = () =>
       document.getElementById(search.getAttribute("aria-activedescendant") ?? "")?.textContent;
@@ -88,10 +95,11 @@ describe("NodePalette", () => {
   });
 
   it("sem resultado avisa e o Enter não insere; clicar numa opção insere e seleciona", async () => {
-    const { user, flow, palette, inPalette } = setup();
+    const { user, flow, palette, inPalette, opened } = setup();
     act(() => screen.getByTestId("rf__node-prompt").focus());
     await user.keyboard("{Enter}"); // prompt selecionado: a seleção passa para o nó novo
     await user.click(screen.getByRole("button", { name: "Adicionar nó" }));
+    await opened();
     const search = inPalette().getByRole("combobox");
     await user.type(search, "xyz{Enter}");
     expect(inPalette().queryAllByRole("option")).toHaveLength(0);
@@ -108,9 +116,16 @@ describe("NodePalette", () => {
     ]);
   });
 
-  it("duplo clique num nó não abre a paleta", () => {
+  it("duplo clique num nó não abre a paleta", async () => {
     const { palette } = setup();
+    // Com o pedaço já baixado, esperar o mesmo carregador deixa montar uma paleta pedida.
+    const settle = () => act(() => loadCanvasDialogs());
     fireEvent.doubleClick(screen.getByTestId("rf__node-prompt"));
+    await settle();
     expect(palette()).toBeNull();
+    // Controle: no fundo, o mesmo gesto com a mesma espera abre a paleta.
+    fireEvent.doubleClick(document.querySelector(".react-flow__pane") as Element);
+    await settle();
+    expect(palette()).not.toBeNull();
   });
 });
