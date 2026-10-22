@@ -19,7 +19,8 @@ RUN pnpm --dir apps/web build
 
 # Variante slim: o nginx sem os módulos dinâmicos (njs, perl, xslt), que o estúdio não usa.
 FROM nginxinc/nginx-unprivileged:1.30.6-alpine3.24-slim@sha256:5d8bb9437d74a600ec5dbf90c035451c724dc33eac8d3a71078f6f8612c345f6
-# Os dois COPY ficam com dono root: o nginx lê o que serve, mas não reescreve.
+# Os dois COPY ficam com dono root: o nginx lê, mas não reescreve o que serve. O /etc/nginx da
+# base segue do uid 101 (a config pode ser trocada): quem tranca é a raiz só leitura no compose.
 COPY apps/web/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /repo/apps/web/dist /srv/studio
 # O mesmo uid da imagem base; explícito para o contrato não depender dela.
