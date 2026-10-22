@@ -108,8 +108,9 @@ describe("nginx do estúdio (contrato §5)", () => {
     for (const { args } of passes) expect(args[0]).toMatch(/^\$\w+/);
   });
 
-  it("SSE sem buffer, e o upload passa até o teto do RAG", () => {
+  it("SSE sem buffer e sem o corte de 60 s, e o upload passa até o teto do RAG", () => {
     expect(arg(locate("/v1/x")?.block, "proxy_buffering")).toEqual(["off"]);
+    expect(arg(locate("/v1/x")?.block, "proxy_read_timeout")).toEqual(["300s"]);
     expect(arg(locate("/api/x")?.block, "proxy_buffering")).toEqual(["off"]);
     const limit = bytes(arg(locate("/api/x")?.block, "client_max_body_size")?.[0]);
     expect(limit).toBeGreaterThanOrEqual(MAX_BODY_BYTES);
