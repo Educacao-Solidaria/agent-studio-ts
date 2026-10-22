@@ -70,14 +70,17 @@ image() {
     [ "$(status "$base/")" = 200 ] || [ "$(docker inspect -f '{{.State.Running}}' studio)" = false ] && break
     sleep 1
   done
-  if ! check "sobe sem backend e responde na 3000" is "$(status "$base/")" 200; then
+  # Portão: sem a 3000 de pé nada adiante vale, e o log do nginx diz por quê (config, porta).
+  if [ "$(status "$base/")" != 200 ]; then
+    echo "FALHA sobe sem backend e responde na 3000"
     docker logs studio
     exit 1
   fi
+  echo "ok    sobe sem backend e responde na 3000"
   check "todo processo com uid 101" only_uid 101
   check "healthcheck da imagem: healthy" healthy
 
-  index=$(curl -s "$base/")
+  index=$(curl -s "$base/" || true)
   js=$(grep -o '/assets/index-[^"]*\.js' <<< "$index" | head -1 || true)
   check "/ é o index.html do build" has "$index" '<div id="root"></div>'
   check "rota do cliente cai no index.html" is "$(curl -s "$base/fluxos/1")" "$index"
