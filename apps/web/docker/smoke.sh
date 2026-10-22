@@ -42,6 +42,10 @@ only_uid() { docker top studio -o pid,uid | awk -v uid="$1" 'NR > 1 { n++; if ($
 context() {
   local out
   out=$(mktemp -d)
+  # Os .env falsos nunca por cima de um de verdade: fora do CI, o tee apagaria o do desenvolvedor.
+  for file in .env apps/web/.env.local; do
+    [ ! -e "$file" ] || { echo "$file já existe: rode num checkout limpo (o do CI)" >&2 && exit 2; }
+  done
   mkdir -p node_modules/x apps/web/node_modules/x apps/web/dist
   echo 'SEGREDO=nao-pode-entrar-no-build' | tee .env apps/web/.env.local > /dev/null
   printf 'FROM scratch\nCOPY . /\n' | docker buildx build -q -f - --output "type=local,dest=$out" . > /dev/null
