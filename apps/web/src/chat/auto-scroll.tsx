@@ -18,7 +18,7 @@ export const STICK_THRESHOLD = 48;
  * continua no fim) não soltam por engano.
  */
 export function useStickToBottom(threshold = STICK_THRESHOLD) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const stuckRef = useRef(true); // ref, não estado: grudar e soltar não renderizam nada
   const [unseen, setUnseen] = useState(false); // conteúdo novo chegou enquanto estava solto
@@ -79,17 +79,28 @@ export function useStickToBottom(threshold = STICK_THRESHOLD) {
   return { scrollRef, contentRef, unseen, scrollToBottom };
 }
 
-export type AutoScrollProps = { children: ReactNode; className?: string; threshold?: number };
+export type AutoScrollProps = {
+  children: ReactNode;
+  className?: string;
+  threshold?: number;
+  label?: string; // nome da região rolável para o leitor de tela
+};
 
 /** Área de rolagem do chat que segue o fim enquanto o texto chega; quem subiu para ler não é
  * puxado de volta e ganha o botão "Novas mensagens" quando chega conteúdo abaixo. */
-export function AutoScroll({ children, className, threshold }: AutoScrollProps) {
+export function AutoScroll({
+  children,
+  className,
+  threshold,
+  label = "Mensagens",
+}: AutoScrollProps) {
   const { scrollRef, contentRef, unseen, scrollToBottom } = useStickToBottom(threshold);
   return (
     <div className={cn("relative min-h-0", className)}>
-      <div ref={scrollRef} tabIndex={-1} className="h-full overflow-y-auto">
+      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: área que rola precisa do Tab (WCAG 2.1.1) */}
+      <section ref={scrollRef} aria-label={label} tabIndex={0} className="h-full overflow-y-auto">
         <div ref={contentRef}>{children}</div>
-      </div>
+      </section>
       {unseen && <NewMessagesButton onClick={scrollToBottom} />}
     </div>
   );

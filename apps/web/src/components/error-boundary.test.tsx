@@ -35,9 +35,9 @@ describe("ErrorBoundary", () => {
         <Flaky />
       </ErrorBoundary>,
     );
-    expect(screen.getByRole("alert").querySelector("pre")?.textContent).toContain(
-      "falha no nó de RAG",
-    );
+    const trace = screen.getByRole("alert").querySelector("pre");
+    expect(trace?.textContent).toContain("falha no nó de RAG");
+    expect(trace?.tabIndex).toBe(0); // o rastro rola: o teclado tem de chegar ao fim dele
   });
 
   it("tentar novamente remonta só a subárvore e preserva o estado de fora", () => {

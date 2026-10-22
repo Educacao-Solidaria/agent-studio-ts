@@ -68,7 +68,8 @@ function ErrorFallback({ error, showDetails, onRetry }: ErrorFallbackProps) {
         página.
       </p>
       {showDetails && (
-        <pre className="max-h-64 w-full overflow-auto rounded-md bg-muted p-3 text-xs">
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: o rastro rola e precisa do Tab (WCAG 2.1.1)
+        <pre tabIndex={0} className="max-h-64 w-full overflow-auto rounded-md bg-muted p-3 text-xs">
           {error instanceof Error ? (error.stack ?? error.message) : String(error)}
         </pre>
       )}

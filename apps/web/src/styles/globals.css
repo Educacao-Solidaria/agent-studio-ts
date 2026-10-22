@@ -33,7 +33,7 @@
   --primary-foreground: oklch(0.99 0 0);
   --accent: oklch(0.94 0.03 265);
   --accent-foreground: oklch(0.3 0.08 265);
-  --success: oklch(0.6 0.15 150);
+  --success: oklch(0.52 0.14 150); /* 5:1 com o texto do selo (era 3,6:1; o AA pede 4,5:1) */
   --success-foreground: oklch(0.99 0 0);
   --warning: oklch(0.77 0.15 75);
   --warning-foreground: oklch(0.25 0.05 75);
@@ -170,6 +170,11 @@
 .react-flow__controls-button:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: -2px;
+}
+
+/* O link de atribuição vem com #999 fixo: 2,8:1 no tema claro, abaixo dos 4,5:1 do AA. */
+.react-flow__attribution a {
+  color: var(--color-muted-foreground);
 }
 
 /* Gradiente da FlowEdge. Na camada do React Flow e menos específica que as regras dele de

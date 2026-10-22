@@ -101,6 +101,7 @@ describe("CodeBlock", () => {
     const { container } = render(<CodeBlock code={"const a = 1;\r\nlet b;"} lang="ts" />);
     const pre = container.querySelector("pre") as HTMLElement;
     expect(pre.textContent).toBe("const a = 1;\nlet b;");
+    expect(pre.tabIndex).toBe(0); // linha longa rola na horizontal: o teclado tem de chegar ao bloco
     expect(spans(pre)).toEqual([]);
     await waitFor(() => expect(spans(pre).length).toBeGreaterThan(0));
     const keyword = spans(pre).find((span) => span.textContent === "const");
