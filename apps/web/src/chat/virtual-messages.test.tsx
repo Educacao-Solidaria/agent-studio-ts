@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { isObserved, triggerAllResizes, triggerResize } from "../test/browser-mocks.ts";
 import { VirtualMessages } from "./virtual-messages.tsx";
@@ -274,4 +275,14 @@ it("estimativa 0 ou NaN e overscan NaN ou negativo não desligam a virtualizaç�
 it("lista vazia: nada no DOM, altura zero e sem erro", () => {
   const { rows, total } = setup([]);
   expect([rows().length, total()]).toEqual([0, 0]);
+});
+
+it("a área que rola entra no Tab como região com nome (teclado rola sem mouse)", async () => {
+  render(
+    <VirtualMessages items={messages(3)} getKey={(m) => m.id}>
+      {(m) => <p>{m.text}</p>}
+    </VirtualMessages>,
+  );
+  await userEvent.setup().tab();
+  expect(document.activeElement).toBe(screen.getByRole("region", { name: "Mensagens" }));
 });

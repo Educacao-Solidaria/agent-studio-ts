@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { setMediaQuery, triggerResize } from "../test/browser-mocks.ts";
 import { AutoScroll } from "./auto-scroll.tsx";
@@ -137,6 +138,24 @@ describe("AutoScroll", () => {
     small.grow(150); // passou da área: grudado, vai ao fim
     expect(small.scroller.scrollTop).toBe(50);
     expect(screen.queryAllByRole("button")).toEqual([]);
+  });
+
+  it("a área que rola entra no Tab como região com nome (setas e PageDown sem mouse)", async () => {
+    render(
+      <>
+        <AutoScroll>
+          <p>a</p>
+        </AutoScroll>
+        <AutoScroll label="Resposta">
+          <p>b</p>
+        </AutoScroll>
+      </>,
+    );
+    const user = userEvent.setup();
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("region", { name: "Mensagens" }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("region", { name: "Resposta" }));
   });
 
   it("desmontar desliga o observador e os ouvintes", () => {

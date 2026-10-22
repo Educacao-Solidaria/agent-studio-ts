@@ -10,6 +10,7 @@ export type VirtualMessagesProps<T> = {
   estimateSize?: number; // px de uma mensagem que ainda não chegou ao DOM
   overscan?: number; // px renderizados além da tela, de cada lado
   className?: string;
+  label?: string; // nome da região rolável para o leitor de tela
 };
 
 /** Primeiro índice cujo fim passa de `y` (os inícios crescem: busca binária). */
@@ -39,6 +40,7 @@ export function VirtualMessages<T>({
   estimateSize = 96,
   overscan = 600,
   className,
+  label = "Mensagens",
 }: VirtualMessagesProps<T>) {
   const { scrollRef, contentRef, unseen, scrollToBottom } = useStickToBottom();
   // Prop degenerada não desliga a virtualização (estimativa 0 poria todas no DOM; NaN, nenhuma).
@@ -137,14 +139,20 @@ export function VirtualMessages<T>({
   );
   return (
     <div className={cn("relative min-h-0", className)}>
-      <div ref={scrollRef} tabIndex={-1} className="h-full overflow-y-auto [overflow-anchor:none]">
+      <section
+        ref={scrollRef}
+        aria-label={label}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: área que rola precisa do Tab (WCAG 2.1.1)
+        tabIndex={0}
+        className="h-full overflow-y-auto [overflow-anchor:none]"
+      >
         <div ref={contentRef} style={{ paddingTop: starts[first] ?? 0 }}>
           <ol>
             {items.slice(first, stop).map((item, offset) => row(item, first + offset))}
             {pinned !== undefined && row(pinned, last, gap)}
           </ol>
         </div>
-      </div>
+      </section>
       {unseen && <NewMessagesButton onClick={scrollToBottom} />}
     </div>
   );
