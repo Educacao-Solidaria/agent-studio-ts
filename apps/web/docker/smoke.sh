@@ -18,6 +18,8 @@ check() { # check <descrição> <comando...>
 is() { [ "$1" = "$2" ] || { echo "      esperado [$2], veio [$1]" && return 1; }; }
 has() { [[ $1 == *"$2"* ]] || { echo "      sem [$2]" && return 1; }; }
 lacks() { [[ $1 != *"$2"* ]] || { echo "      com [$2]" && return 1; }; }
+# Prazo em todo pedido: nginx que aceita a conexão e não responde não pode segurar o job.
+curl() { command curl -m 10 "$@"; }
 status() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
 headers() { curl -s -D - -o /dev/null "$@" | tr -d '\r'; }
 # O nginx do estúdio resolve o backend de novo a cada `valid` (10 s): espera ele aparecer.
@@ -89,7 +91,7 @@ image() {
 
   # O build abre no Chrome do runner: o React monta dentro do #root e a tela de erro não aparece.
   local dom
-  dom=$(google-chrome --headless --no-sandbox --disable-gpu --user-data-dir="$dir/chrome" \
+  dom=$(timeout 60 google-chrome --headless --no-sandbox --disable-gpu --user-data-dir="$dir/chrome" \
     --virtual-time-budget=5000 --dump-dom "$base/" 2> /dev/null || true)
   check "o app monta no navegador" has "$dom" '<div id="root"><'
   check "o app monta sem a tela de erro" lacks "$dom" 'role="alert"'
