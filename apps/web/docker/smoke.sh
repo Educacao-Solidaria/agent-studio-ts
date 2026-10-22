@@ -59,8 +59,10 @@ image() {
   trap 'docker rm -f studio backend > /dev/null 2>&1; docker network rm studio-smoke > /dev/null 2>&1' EXIT
   check "usuário da imagem: 101" is "$(docker image inspect -f '{{.Config.User}}' "$img")" 101
   check "expõe 3000/tcp" has "$(docker image inspect -f '{{json .Config.ExposedPorts}}' "$img")" '"3000/tcp"'
+  # No Docker 29 do runner (image store do containerd), o .Size é o tamanho comprimido: 8,4 MB
+  # com a base slim (a alpine cheia passaria de 25 MB). Descompactada, a imagem tem ~19 MB.
   size=$(docker image inspect -f '{{.Size}}' "$img")
-  check "imagem < 30 MB ($((size / 1000)) kB)" test "$size" -lt 30000000
+  check "imagem < 15 MB ($((size / 1000)) kB)" test "$size" -lt 15000000
 
   # Endurecido como o compose pode rodar: raiz só leitura, sem capabilities nem privilégio novo.
   docker network create "$net" > /dev/null
@@ -83,6 +85,7 @@ image() {
   index=$(curl -s "$base/" || true)
   js=$(grep -o '/assets/index-[^"]*\.js' <<< "$index" | head -1 || true)
   check "/ é o index.html do build" has "$index" '<div id="root"></div>'
+  check "o index.html aponta o JS principal em /assets/" test -n "$js"
   check "rota do cliente cai no index.html" is "$(curl -s "$base/fluxos/1")" "$index"
   check "index.html revalida a cada visita" has "$(headers "$base/")" 'Cache-Control: no-cache'
   check "asset com hash: cache de 1 ano" has "$(headers "$base$js")" 'Cache-Control: public, max-age=31536000, immutable'
