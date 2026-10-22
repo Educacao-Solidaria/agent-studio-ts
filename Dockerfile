@@ -26,4 +26,4 @@ COPY --from=build /repo/apps/web/dist /srv/studio
 USER 101
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --start-interval=1s \
-    CMD ["wget", "-q", "-T", "2", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+    CMD ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3000/"]
