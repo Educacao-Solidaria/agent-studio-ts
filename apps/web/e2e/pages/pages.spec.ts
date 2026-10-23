@@ -9,6 +9,9 @@ import { expect, test } from "@playwright/test";
 const BASE = process.env.PAGES_BASE ?? "/agent-studio-ts/";
 const SITE = new URL(BASE, "https://educacao-solidaria.github.io");
 const DIST = new URL("../../dist/", import.meta.url);
+// Chamada de API (as rotas /api/, /v1/ e /health/* do contrato §5, na raiz da origem) não tem
+// backend no Pages: falha lá e aqui (404), sem reprovar. O que o build entrega vem do base.
+const API = ["fetch", "xhr", "eventsource"];
 
 test("abre no subcaminho do Pages e baixa de lá os pedaços sob demanda", async ({ page }) => {
   expect(BASE, "PAGES_BASE = /<repo>/").toMatch(/^\/[\w.-]+\/$/);
@@ -17,6 +20,7 @@ test("abre no subcaminho do Pages e baixa de lá os pedaços sob demanda", async
   page.on("pageerror", (error) => found.errors.push(error.message));
   await page.route("**/*", (route) => {
     const url = new URL(route.request().url());
+    if (API.includes(route.request().resourceType())) return route.fulfill({ status: 404 });
     if (url.origin !== SITE.origin || !url.pathname.startsWith(BASE)) {
       found.outside.push(url.href);
       return route.abort();
