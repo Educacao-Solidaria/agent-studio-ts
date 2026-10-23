@@ -91,14 +91,25 @@ describe("workflow do staging no GitHub Pages (contrato §6)", () => {
     expect(value(get(steps(build).at(-1), "with"), "path")).toBe("apps/web/dist");
   });
 
-  it("todo job com prazo, action por major ou sha (nunca um ramo) e nenhuma expressão em run", () => {
+  it("smoke vermelho barra o artefato: no build, nada de if, continue-on-error, env de passo nem ambiente", () => {
+    // Lista de permissão: chave nova no job ou num passo do build é decisão consciente, com teste novo.
+    expect(texts(build)?.map(keyOf).join()).toBe("runs-on,timeout-minutes,defaults,env,steps");
+    for (const step of steps(build)) {
+      for (const { text } of [step, ...step.kids]) {
+        expect(["name", "id", "uses", "with", "run"], step.text).toContain(keyOf(text));
+      }
+    }
+  });
+
+  it("todo job com prazo, action oficial por major ou sha, de terceiro só por sha, nenhuma expressão em run", () => {
     for (const job of jobs?.kids ?? []) {
       expect(Number(value(job, "timeout-minutes")), job.text).toBeGreaterThan(0);
       expect(Number(value(job, "timeout-minutes")), job.text).toBeLessThanOrEqual(20);
     }
     const all = [build, deploy].flatMap(steps);
     for (const uses of all.flatMap((step) => field(step, "uses") ?? [])) {
-      expect(uses).toMatch(/^[\w-]+\/[\w-]+@(v\d+|[0-9a-f]{40})$/);
+      // A tag é mutável: no workflow que publica, código de terceiro só pelo sha que o CI rodou.
+      expect(uses).toMatch(/^(actions\/[\w-]+@v\d+|[\w-]+\/[\w-]+@[0-9a-f]{40})$/);
     }
     for (const run of all.flatMap((step) => field(step, "run") ?? [])) {
       expect(run).not.toMatch(/\$\{\{|^[|>]/);
