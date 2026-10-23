@@ -13,3 +13,4 @@
 apps/web/storybook-static
 apps/web/test-results
 apps/web/playwright-report
+apps/web/e2e/visual/__snapshots__
