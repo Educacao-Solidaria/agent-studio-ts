@@ -87,7 +87,7 @@
   --warning-foreground: oklch(0.2 0.04 75);
   --danger: oklch(0.68 0.19 27);
   --danger-foreground: oklch(0.16 0.01 265);
-  --border: oklch(0.4 0.012 265);
+  --border: oklch(0.3 0.012 265);
   --input: oklch(0.34 0.014 265);
   --ring: oklch(0.68 0.17 265);
 }
