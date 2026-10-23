@@ -1,0 +1,68 @@
+name: Deploy (staging)
+
+# O Studio estático no GitHub Pages, como staging, a cada merge na main (contratos da Fase 5, §6).
+# Build, smoke no subcaminho do Pages e artefato rodam sempre: o PR prova o pipeline sem publicar.
+# O deploy só roda na main e com a variável de repositório STAGING_PAGES = true. Ligar o Pages
+# (fonte "GitHub Actions") e criar a variável fica com quem administra o repo: daqui nada é ligado.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Na main, o deploy em curso termina e só o último da fila segue; no PR, o push novo cancela o velho.
+concurrency:
+  group: staging-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    # O Playwright 1.60.0 não instala no ubuntu 26.04 (o ubuntu-latest de hoje), como no e2e do ci.yml.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      # Site de projeto: https://<dono>.github.io/<repo>/. ponytail: com domínio próprio o site fica
+      # na raiz e o base vira "/".
+      PAGES_BASE: /${{ github.event.repository.name }}/
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # O base do Pages só neste build: a imagem do nginx e o job web do ci.yml seguem na raiz.
+      - run: pnpm build --base "$PAGES_BASE"
+      - run: pnpm exec playwright install --with-deps chromium
+      # O dist aberto com as regras do Pages (só existe o que está dentro do base; o resto é 404):
+      # o que não abre lá não vira artefato.
+      - run: pnpm test:e2e:pages
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && vars.STAGING_PAGES == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
