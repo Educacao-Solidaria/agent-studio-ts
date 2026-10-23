@@ -73,6 +73,42 @@ jobs:
           path: apps/web/test-results
           retention-days: 7
 
+  # Regressão visual (e2e/visual): os PNG de referência nascem e são comparados SÓ nesta imagem, a
+  # oficial do Playwright na versão exata do @playwright/test (o playwright.visual.config recusa
+  # outra; o src/visual.test confere a tag). PNG novo ou mudado reprova o job, que gera os
+  # candidatos na mesma imagem e os sobe no artefato visual-snapshots: revise e commite os PNG.
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      # v1.60.0-noble, pelo digest do índice multi-arch (o runner puxa a linux/amd64)
+      image: mcr.microsoft.com/playwright:v1.60.0-noble@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:visual
+      - name: PNG candidatos na mesma imagem (só para revisar e commitar)
+        if: failure()
+        run: pnpm test:visual --update-snapshots=changed
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-snapshots
+          path: |
+            apps/web/e2e/visual/__snapshots__
+            apps/web/test-results
+          retention-days: 7
+
   # Imagem de produção (Dockerfile na raiz) com o cache do Buildx no GitHub, e o smoke no container:
   # sobe sem backend, sem root, na 3000 (contratos da Fase 5, §2 e §5). Nada vai para registry.
   image:

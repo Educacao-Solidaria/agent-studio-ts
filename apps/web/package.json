@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "test:e2e:image": "playwright test --config playwright.image.config.ts",
     "test:e2e:pages": "playwright test --config playwright.pages.config.ts",
+    "test:visual": "playwright test --config playwright.visual.config.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build --quiet"
   },
