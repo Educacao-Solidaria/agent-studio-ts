@@ -43,7 +43,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # O base do Pages só neste build: a imagem do nginx e o job web do ci.yml seguem na raiz.
-      - run: pnpm build
+      - run: pnpm build --base "$PAGES_BASE"
       - run: pnpm exec playwright install --with-deps chromium
       # O dist aberto com as regras do Pages (só existe o que está dentro do base; o resto é 404):
       # o que não abre lá não vira artefato.
