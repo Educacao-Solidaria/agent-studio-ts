@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import ci from "../../../.github/workflows/ci.yml?raw";
 import { BASELINE_DIR, notOfficial, officialImage, runningImage } from "../e2e/visual/baseline.ts";
+import spec from "../e2e/visual/visual.spec.ts?raw";
 import manifest from "../package.json?raw";
+import config from "../playwright.visual.config.ts?raw";
 import { field, get, keyOf, outline, pipeline, steps, texts, value } from "./test/workflow.ts";
 
 // Regressão visual (e2e/visual): o job `visual` do CI e a trava do playwright.visual.config. Os PNG
@@ -13,7 +15,8 @@ import { field, get, keyOf, outline, pipeline, steps, texts, value } from "./tes
 // foto reprova layout e tema quebrados, só o próprio job prova (commit de mutação no PR 99).
 
 const visual = get(get(outline(ci), "jobs"), "visual");
-const version: string = JSON.parse(manifest).devDependencies["@playwright/test"];
+const { devDependencies, scripts } = JSON.parse(manifest);
+const version: string = devDependencies["@playwright/test"];
 
 describe("job visual do CI", () => {
   it("roda na imagem oficial do Playwright da versão exata do @playwright/test, por digest", () => {
@@ -38,6 +41,14 @@ describe("job visual do CI", () => {
     expect(conditions).toEqual([...Array(5).fill(undefined), "failure()", "failure()"]);
     const upload = get(steps(visual).at(-1), "with");
     expect(texts(get(upload, "path"))).toContain(`apps/web/${BASELINE_DIR}`);
+  });
+
+  it("o passo compara de verdade: o script e a config sem atalho que aprove qualquer foto", () => {
+    // `--list`, outra config, updateSnapshots, ignoreSnapshots ou tolerância por número de pixels
+    // deixariam o job verde sem comparar. O limiar é o medido: com 0,2, troca de token passava.
+    expect(scripts["test:visual"]).toBe("playwright test --config playwright.visual.config.ts");
+    const knobs = /threshold: [\d.]+|maxDiffPixel\w*|updateSnapshots|ignoreSnapshots/g;
+    expect(`${config}\n${spec}`.match(knobs)).toEqual(["threshold: 0.03"]);
   });
 
   it("nada que deixe passar: chaves do job, do container e dos passos em lista de permissão", () => {
