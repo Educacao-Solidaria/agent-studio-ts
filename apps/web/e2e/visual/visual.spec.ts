@@ -73,6 +73,13 @@ test("as telas do Studio: canvas, atalhos, painel, paleta e modelos", async ({ p
     await settle(page);
     await expect.soft(page, name).toHaveScreenshot(`${name}.png`);
   }
+  // local() que não acha a fonte cai calado na de antes, sem negrito: as duas faces carregaram.
+  const inter = await page.evaluate(() =>
+    [...document.fonts]
+      .filter((face) => face.family.replaceAll('"', "") === "Inter")
+      .map((face) => face.status),
+  );
+  expect(inter).toEqual(["loaded", "loaded"]);
 });
 
 test("toda story do catálogo que para de mudar", async ({ page }, info) => {
