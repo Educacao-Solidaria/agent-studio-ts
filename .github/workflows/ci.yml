@@ -97,9 +97,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:visual
+      # A 2ª volta escreve fora do test-results: lá fica o diff da 1ª (esperado, atual, diferença).
       - name: PNG candidatos na mesma imagem (só para revisar e commitar)
         if: failure()
-        run: pnpm test:visual --update-snapshots=changed
+        run: pnpm test:visual --update-snapshots=changed --output=/tmp/visual-candidatos
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

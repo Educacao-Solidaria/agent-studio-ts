@@ -21,6 +21,19 @@ const MASK: Record<string, string> = {
   "components/error-boundary.stories.tsx › WithDetails": "pre",
 };
 
+// A imagem do CI não tem a Inter (a 1ª fonte do tema), e a que o Chromium põe no lugar não tem
+// negrito: o título `font-semibold` saía regular, e um negrito perdido passaria. Na foto, a Inter é
+// a Liberation Sans da própria imagem, que tem regular e negrito.
+const INTER = `@font-face { font-family: Inter; font-weight: 100 500; src: local("Liberation Sans") }
+@font-face { font-family: Inter; font-weight: 600 900; src: local("Liberation Sans Bold") }`;
+test.beforeEach(({ page }) =>
+  page.addInitScript((css) => {
+    addEventListener("DOMContentLoaded", () => {
+      document.head.append(Object.assign(document.createElement("style"), { textContent: css }));
+    });
+  }, INTER),
+);
+
 const opens = async (page: Page, button: string) => {
   await page.getByRole("button", { name: button }).click();
   await expect(page.getByRole("dialog")).toBeVisible();

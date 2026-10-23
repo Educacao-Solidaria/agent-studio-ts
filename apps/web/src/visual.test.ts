@@ -31,7 +31,7 @@ describe("job visual do CI", () => {
       "actions/setup-node",
       "pnpm install --frozen-lockfile",
       "pnpm test:visual",
-      "pnpm test:visual --update-snapshots=changed",
+      "pnpm test:visual --update-snapshots=changed --output=/tmp/visual-candidatos",
       "actions/upload-artifact",
     ]);
     const conditions = steps(visual).map((step) => field(step, "if"));
