@@ -102,7 +102,8 @@ describe("e2e/stack", () => {
     expect(config).toContain('testDir: "e2e/stack"');
     expect(config).toContain('baseURL: process.env.STUDIO_URL ?? "http://127.0.0.1:3000"');
     expect(defaults).toMatch(/testIgnore: \[[^\]]*"stack\/\*\*"/);
-    // Teste pulado deixa o job verde sem sondar nada.
-    expect(spec).not.toMatch(/\.(skip|fixme|only)\(/);
+    // Teste pulado deixa o job verde sem sondar nada; com falha esperada (`test.fail()`), verde
+    // justamente quando o link quebra.
+    expect(spec).not.toMatch(/\.(skip|fixme|fail|only)\(/);
   });
 });
