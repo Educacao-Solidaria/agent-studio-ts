@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // ponytail: só Chromium; Firefox/WebKit é mais um `projects` e o `playwright install` deles.
 export default defineConfig({
   testDir: "e2e",
-  testIgnore: ["image/**", "pages/**", "visual/**"], // config própria: playwright.<pasta>.config.ts
+  testIgnore: ["image/**", "pages/**", "stack/**", "visual/**"], // config própria: playwright.<pasta>.config.ts
   workers: 1, // a página é uma só e o stream é cronometrado: um teste por vez
   forbidOnly: true,
   expect: { timeout: 10_000 }, // o dev server compila sob demanda: runner lento não é falha

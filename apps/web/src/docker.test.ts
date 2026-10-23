@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import dockerfile from "../../../Dockerfile?raw";
 import nginxConf from "../docker/nginx.conf?raw";
 import { OPENROUTER_MODELS_URL } from "./chat/model-pricing.ts";
+import { BACKEND_SERVICES } from "./components/backend-services.ts";
 import { MAX_BODY_BYTES } from "./rag/index-document.ts";
 
 // Contratos da Fase 5 (§2 imagem, §5 mesma origem) conferidos no texto do Dockerfile e da config
@@ -99,6 +100,22 @@ describe("nginx do estúdio (contrato §5)", () => {
   ])("%s fica no SPA, sem proxy", (path) => {
     expect(upstreamOf(path)).toBeUndefined();
     expect(arg(locate(path)?.block, "try_files")).toEqual(["$uri", "/index.html"]);
+  });
+
+  it("cada lâmpada do painel sonda a saúde de um serviço; cada /health/ exato tem lâmpada", () => {
+    // Fora de uma location exata, o caminho cairia no SPA: 200 com o index.html, sem backend.
+    const exact = locations.flatMap(({ args: [modifier, path = ""] }) =>
+      modifier === "=" && path.startsWith("/health/") ? [path] : [],
+    );
+    const urls = BACKEND_SERVICES.map(({ url }) => url);
+    expect([...urls].sort()).toEqual(exact.sort());
+    expect(urls.map(upstreamOf)).toEqual([
+      "http://gateway:8080/healthz",
+      "http://cache:8099/health",
+      "http://rag:8000/healthz",
+    ]);
+    // A sondagem guarda o estado pelo nome: repetido, duas lâmpadas acenderiam juntas.
+    expect(new Set(BACKEND_SERVICES.map(({ name }) => name)).size).toBe(BACKEND_SERVICES.length);
   });
 
   it("backend resolvido a cada pedido pelo DNS do Docker: a imagem sobe sem ele", () => {

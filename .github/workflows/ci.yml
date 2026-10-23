@@ -130,3 +130,95 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Smoke no container
         run: apps/web/docker/smoke.sh image educacao-solidaria/agent-studio:dev
+
+  # O ecossistema do compose do flow-gateway-go (contratos da Fase 5, §1–§5) com ESTE estúdio: os 4
+  # repositórios lado a lado (dos outros 3, a main), cada imagem na tag do contrato, sem push, o
+  # `up --wait` e o e2e/stack, que confere pela origem do estúdio cada link do proxy (sem navegador).
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Sem o artefato .dockerbuild de cada build e sem o evento do PR despejado no log.
+      DOCKER_BUILD_RECORD_UPLOAD: false
+      BUILDX_METADATA_PROVENANCE: disabled
+    defaults:
+      run:
+        working-directory: flow-gateway-go/deploy/compose
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: agent-studio-ts
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Educacao-Solidaria/flow-gateway-go
+          path: flow-gateway-go
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Educacao-Solidaria/semantic-cache-rs
+          path: semantic-cache-rs
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Educacao-Solidaria/brain-router-py
+          path: brain-router-py
+          persist-credentials: false
+      - name: .env de mentira (nada chama a OpenRouter)
+        run: sed 's/=$/=valor-falso-do-ci/' .env.example > .env
+      - uses: docker/setup-buildx-action@v4
+      # O cache do Buildx só é gravado na main: o PR lê o dela (os vizinhos mudam pouco) e não
+      # soma ~1 GB por branch no cache do repositório.
+      - name: Imagem do gateway
+        uses: docker/build-push-action@v7
+        with:
+          context: flow-gateway-go
+          tags: educacao-solidaria/flow-gateway:dev
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=stack-gateway
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=stack-gateway' || '' }}
+      - name: Imagem do cache
+        uses: docker/build-push-action@v7
+        with:
+          context: semantic-cache-rs
+          tags: educacao-solidaria/semantic-cache:dev
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=stack-cache
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=stack-cache' || '' }}
+      - name: Imagem do RAG
+        uses: docker/build-push-action@v7
+        with:
+          context: brain-router-py
+          tags: educacao-solidaria/brain-router:dev
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=stack-rag
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=stack-rag' || '' }}
+      - name: Imagem do estúdio (este commit)
+        uses: docker/build-push-action@v7
+        with:
+          context: agent-studio-ts
+          tags: educacao-solidaria/agent-studio:dev
+          load: true
+          provenance: false
+          cache-from: type=gha,scope=stack-studio
+          cache-to: ${{ github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=stack-studio' || '' }}
+      - name: Sobe o ecossistema
+        run: docker compose up -d --no-build --wait --wait-timeout 180
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: agent-studio-ts/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: agent-studio-ts/apps/web
+      - run: pnpm test:e2e:stack
+        working-directory: agent-studio-ts/apps/web
+      - name: Estado e logs dos containers
+        if: failure()
+        run: docker compose ps -a && docker compose logs --no-color
