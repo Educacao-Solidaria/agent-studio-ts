@@ -172,7 +172,7 @@ it("desmontar aborta a checagem em curso e não deixa timer nem ouvinte", async 
   expect(late.signals).toHaveLength(1);
 });
 
-it("checkHealth: 2xx de pé; 503, sem rede, prazo estourado e abortado, não", async () => {
+it("checkHealth: 2xx com JSON de pé; HTML, 503, sem rede, prazo estourado e abortado, não", async () => {
   let cache = "";
   let slow: AbortSignal | undefined;
   server.use(
@@ -181,6 +181,8 @@ it("checkHealth: 2xx de pé; 503, sem rede, prazo estourado e abortado, não", a
       return HttpResponse.json({ status: "ok" });
     }),
     http.get(RAG.url, () => HttpResponse.json({ status: "unavailable" }, { status: 503 })),
+    // O fallback do SPA (o `vite dev` responde assim a /health/gateway): 200, mas é o index.html.
+    http.get("http://spa.test/health/gateway", () => HttpResponse.html("<!doctype html>")),
     http.get("http://off.test/healthz", () => HttpResponse.error()),
     http.get("http://slow.test/healthz", async ({ request }) => {
       slow = request.signal;
@@ -191,6 +193,7 @@ it("checkHealth: 2xx de pé; 503, sem rede, prazo estourado e abortado, não", a
   expect(await checkHealth(GATEWAY.url, signal)).toBe(true);
   expect(cache).toBe("no-store");
   expect(await checkHealth(RAG.url, signal)).toBe(false);
+  expect(await checkHealth("http://spa.test/health/gateway", signal)).toBe(false);
   expect(await checkHealth("http://off.test/healthz", signal)).toBe(false);
   expect(await checkHealth("http://slow.test/healthz", signal, 50)).toBe(false);
   expect(slow?.aborted).toBe(true); // o prazo fecha o pedido

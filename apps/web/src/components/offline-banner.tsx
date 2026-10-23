@@ -3,7 +3,7 @@ import { backoffDelay } from "../chat/sse-reader.ts";
 import { cn } from "../lib/cn.ts";
 import { Icon } from "./icons.tsx";
 
-/** Um serviço do backend e a rota de saúde dele (`/healthz`); o nome (único na lista) é o que aparece. */
+/** Um serviço e a URL de saúde dele (as do estúdio: `BACKEND_SERVICES`); o nome, único, é o que aparece. */
 export type Service = { name: string; url: string };
 export type Check = (url: string, signal: AbortSignal) => Promise<boolean>;
 export type ConnectivityOptions = {
@@ -25,7 +25,11 @@ const list = new Intl.ListFormat("pt-BR", { type: "conjunction" });
 const atLeast = (value: number, min: number, fallback: number) =>
   Number.isFinite(value) ? Math.max(min, value) : fallback;
 
-/** `GET` sem cache e com prazo: de pé = respondeu 2xx (503 do `/healthz` é dependência caída). */
+/**
+ * `GET` sem cache e com prazo: de pé = respondeu 2xx com JSON (503 do `/healthz` é dependência
+ * caída). As três saúdes do backend são JSON; o `index.html` que o fallback do SPA devolve com 200
+ * a caminho sem rota (`vite dev`, ou um nginx sem a location) não acende lâmpada sem backend.
+ */
 export async function checkHealth(url: string, signal: AbortSignal, timeoutMs = 5000) {
   if (signal.aborted) return false;
   const request = new AbortController();
@@ -33,7 +37,8 @@ export async function checkHealth(url: string, signal: AbortSignal, timeoutMs = 
   const timer = setTimeout(abort, timeoutMs);
   signal.addEventListener("abort", abort, { once: true });
   try {
-    return (await fetch(url, { cache: "no-store", signal: request.signal })).ok;
+    const response = await fetch(url, { cache: "no-store", signal: request.signal });
+    return response.ok && (response.headers.get("content-type") ?? "").includes("json");
   } catch {
     return false; // sem rede, CORS, DNS ou prazo: inacessível
   } finally {

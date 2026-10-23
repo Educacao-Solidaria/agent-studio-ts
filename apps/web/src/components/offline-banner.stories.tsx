@@ -2,15 +2,15 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { OfflineBanner } from "./offline-banner.tsx";
 
 const services = [
-  { name: "Gateway", url: "/healthz" },
-  { name: "RAG", url: "/rag/healthz" },
+  { name: "Gateway", url: "/health/gateway" },
+  { name: "RAG", url: "/health/rag" },
 ];
 
 const meta = {
   title: "ui/OfflineBanner",
   component: OfflineBanner,
   // Saúde simulada: nada sai da página. O RAG nunca responde.
-  args: { services, baseDelayMs: 500, check: async (url: string) => !url.startsWith("/rag") },
+  args: { services, baseDelayMs: 500, check: async (url: string) => url !== "/health/rag" },
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof OfflineBanner>;
 export default meta;
