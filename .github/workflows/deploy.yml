@@ -55,9 +55,15 @@ jobs:
 
   deploy:
     needs: build
-    # MUTANTE TEMPORARIO (revertido no proximo commit): so a variavel decide, e o job e inerte.
-    if: vars.STAGING_PAGES == 'true'
+    if: github.ref == 'refs/heads/main' && vars.STAGING_PAGES == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - run: echo "mutante - sem a variavel este passo nao roda"
+      - id: deployment
+        uses: actions/deploy-pages@v5
