@@ -17,8 +17,12 @@ const HEALTH: Record<string, Record<string, unknown>> = {
   "/health/rag": { status: "ok", checks: { postgres: "ok" } },
 };
 
-/** O `up --wait` não espera o gateway (ele não tem healthcheck): a 1ª resposta pode ser um 502. */
+/** Sem healthcheck no gateway, o `up --wait` só o espera rodar: a 1ª resposta pode ser um 502. */
 const eventually = (probe: () => Promise<void>) => expect(probe).toPass({ timeout: 20_000 });
+
+test("toda lâmpada do painel tem a sua sonda, e toda sonda tem lâmpada", () => {
+  expect(BACKEND_SERVICES.map(({ url }) => url).sort()).toEqual(Object.keys(HEALTH).sort());
+});
 
 for (const { name, url } of BACKEND_SERVICES) {
   test(`lâmpada ${name}: ${url} de pé`, async ({ request }) => {
